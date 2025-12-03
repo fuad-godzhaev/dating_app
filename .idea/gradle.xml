@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GradleMigrationSettings" migrationVersion="1" />
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/ui" />
+        <option name="gradleJvm" value="21" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/ui" />
+            <option value="$PROJECT_DIR$/ui/app" />
+            <option value="$PROJECT_DIR$/ui/core" />
+            <option value="$PROJECT_DIR$/ui/core/auth" />
+            <option value="$PROJECT_DIR$/ui/core/auth/data" />
+            <option value="$PROJECT_DIR$/ui/core/auth/domain" />
+            <option value="$PROJECT_DIR$/ui/core/firebase" />
+            <option value="$PROJECT_DIR$/ui/core/match" />
+            <option value="$PROJECT_DIR$/ui/core/match/data" />
+            <option value="$PROJECT_DIR$/ui/core/match/domain" />
+            <option value="$PROJECT_DIR$/ui/core/message" />
+            <option value="$PROJECT_DIR$/ui/core/message/data" />
+            <option value="$PROJECT_DIR$/ui/core/message/domain" />
+            <option value="$PROJECT_DIR$/ui/core/picture" />
+            <option value="$PROJECT_DIR$/ui/core/picture/data" />
+            <option value="$PROJECT_DIR$/ui/core/picture/domain" />
+            <option value="$PROJECT_DIR$/ui/core/profile" />
+            <option value="$PROJECT_DIR$/ui/core/profile/data" />
+            <option value="$PROJECT_DIR$/ui/core/profile/domain" />
+            <option value="$PROJECT_DIR$/ui/core/ui" />
+            <option value="$PROJECT_DIR$/ui/feature" />
+            <option value="$PROJECT_DIR$/ui/feature/chat" />
+            <option value="$PROJECT_DIR$/ui/feature/chat/ui" />
+            <option value="$PROJECT_DIR$/ui/feature/editprofile" />
+            <option value="$PROJECT_DIR$/ui/feature/editprofile/ui" />
+            <option value="$PROJECT_DIR$/ui/feature/home" />
+            <option value="$PROJECT_DIR$/ui/feature/home/ui" />
+            <option value="$PROJECT_DIR$/ui/feature/onboarding" />
+            <option value="$PROJECT_DIR$/ui/feature/onboarding/domain" />
+            <option value="$PROJECT_DIR$/ui/feature/onboarding/ui" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+    </option>
+  </component>
+</project>

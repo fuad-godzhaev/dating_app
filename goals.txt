@@ -1,0 +1,9 @@
+1) PDS
+2) UI
+3) Basic Matching algorithm
+4) BLE discovery
+5) NAT traversal 
+6) IPv6 traversal
+7) DHT heartbeats
+8) Message relays
+9) Delayed messages

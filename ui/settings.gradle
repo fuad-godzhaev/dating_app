@@ -1,0 +1,39 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "TinderCloneCompose"
+include ':app'
+include ':core:ui'
+include ':core:firebase'
+
+include ':feature:onboarding:ui'
+include ':feature:home:ui'
+include ':feature:chat:ui'
+include ':feature:editprofile:ui'
+
+include ':core:auth:data'
+include ':core:auth:domain'
+
+include ':core:picture:data'
+include ':core:picture:domain'
+
+include ':core:message:data'
+include ':core:message:domain'
+
+include ':core:match:data'
+include ':core:match:domain'
+
+include ':core:profile:data'
+include ':core:profile:domain'
+include ':feature:onboarding:domain'

@@ -1,0 +1,40 @@
+version: '3.9'
+
+services:
+  # Caddy HTTPS Reverse Proxy
+  caddy:
+    container_name: pds-caddy-local
+    image: caddy:2-alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./data/caddy:/data
+      - ./data/caddy-config:/config
+    restart: unless-stopped
+    depends_on:
+      - pds
+    networks:
+      - pds-network
+
+  # PDS Server
+  pds:
+    container_name: pds-local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./data:/app/data
+      - ./.env.https:/app/.env
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+    networks:
+      - pds-network
+
+networks:
+  pds-network:
+    driver: bridge

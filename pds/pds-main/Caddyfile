@@ -1,0 +1,40 @@
+# Caddyfile for local HTTPS testing with PDS
+# This configuration enables HTTPS on localhost for testing
+
+{
+    # Skip automatic certificate installation (avoid permission issues)
+    skip_install_trust
+}
+
+# Option 1: Using .localhost domain (Caddy auto-generates self-signed cert)
+pds.localhost {
+    # Enable automatic HTTPS with self-signed certificate
+    tls internal
+
+    # Reverse proxy to PDS server
+    reverse_proxy localhost:3002 {
+        # Pass through headers
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Enable logging
+    log {
+        output file ./data/caddy-access.log
+    }
+}
+
+# Option 2: Using localhost with custom port (443)
+# Uncomment this if you want to use https://localhost instead
+# localhost {
+#     tls internal
+#     reverse_proxy localhost:3002
+# }
+
+# Option 3: Using a custom local domain (requires hosts file entry)
+# test.local {
+#     tls internal
+#     reverse_proxy localhost:3002
+# }
