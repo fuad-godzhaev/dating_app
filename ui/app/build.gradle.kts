@@ -1,7 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    // alias(libs.plugins.google.services) // Commented out - Firebase not needed
+    // Google Services plugin removed - not needed for mock build variant
+    // If you need Firebase in the future, uncomment the line below and add google-services.json
+    // alias(libs.plugins.google.services)
 }
 
 android {
@@ -23,7 +25,7 @@ android {
 
     buildTypes {
         create("mock") {
-            initWith(getByName("debug"))
+            initWith(getByName<com.android.build.gradle.internal.dsl.BuildType>("debug"))
         }
         release {
             isMinifyEnabled = false

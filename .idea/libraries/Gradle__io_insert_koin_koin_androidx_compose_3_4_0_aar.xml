@@ -1,8 +1,8 @@
 <component name="libraryTable">
   <library name="Gradle: io.insert-koin:koin-androidx-compose:3.4.0@aar" external-system-id="GRADLE">
     <CLASSES>
-      <root url="jar://$USER_HOME$/.gradle/caches/transforms-4/97c693149143721678e393b84311646f/transformed/koin-androidx-compose-3.4.0/jars/classes.jar!/" />
-      <root url="file://$USER_HOME$/.gradle/caches/transforms-4/97c693149143721678e393b84311646f/transformed/koin-androidx-compose-3.4.0/AndroidManifest.xml" />
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-4/9ced3577eeacad3ce7bafda6fbf22639/transformed/koin-androidx-compose-3.4.0/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-4/9ced3577eeacad3ce7bafda6fbf22639/transformed/koin-androidx-compose-3.4.0/AndroidManifest.xml" />
     </CLASSES>
     <JAVADOC>
       <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.insert-koin/koin-androidx-compose/3.4.0/990f900ee31654b88ec5e781b8a970e2e7dbf842/koin-androidx-compose-3.4.0-javadoc.jar!/" />

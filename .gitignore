@@ -117,3 +117,92 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+
+.DS_Store
+.idea/shelf
+/confluence/target
+/dependencies/repo
+/android.tests.dependencies
+/dependencies/android.tests.dependencies
+/dist
+/local
+/gh-pages
+/ideaSDK
+/clionSDK
+/android-studio/sdk
+out/
+/tmp
+/intellij
+workspace.xml
+*.versionsBackup
+/idea/testData/debugger/tinyApp/classes*
+/jps-plugin/testData/kannotator
+/js/js.translator/testData/out/
+/js/js.translator/testData/out-min/
+/js/js.translator/testData/out-pir/
+.gradle/
+build/
+!**/src/**/build
+!**/test/**/build
+!**/tests-gen/**/build
+*.iml
+!**/testData/**/*.iml
+.idea/artifacts
+.idea/remote-targets.xml
+.idea/libraries/Gradle*.xml
+.idea/libraries/Maven*.xml
+.idea/modules
+.idea/runConfigurations/JPS_*.xml
+.idea/runConfigurations/_JPS_*.xml
+.idea/runConfigurations/_FP_*.xml
+.idea/runConfigurations/_MT_*.xml
+.idea/libraries
+.idea/modules.xml
+.idea/gradle.xml
+.idea/compiler.xml
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/.name
+.idea/jarRepositories.xml
+.idea/csv-plugin.xml
+.idea/libraries-with-intellij-classes.xml
+.idea/misc.xml
+.idea/protoeditor.xml
+.idea/uiDesigner.xml
+node_modules/
+.rpt2_cache/
+local.properties
+buildSrcTmp/
+distTmp/
+outTmp/
+/test.output
+/kotlin-native/dist
+kotlin-ide/
+.kotlin/
+.teamcity/
+.npmrc
+/.idea/AndroidProjectSystem.xml
+
+# Created by https://gitignore.org
+# Gradle.gitignore
+
+.gradle
+**/build/
+!**/src/**/build/
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
+
+# Avoid ignore Gradle wrappper properties
+!gradle-wrapper.properties
+
+# Cache of project
+.gradletasknamecache
+
+# Eclipse Gradle plugin generated files
+# Eclipse Core
+.project
+# JDT-specific (Eclipse Java Development Tools)
+.classpath

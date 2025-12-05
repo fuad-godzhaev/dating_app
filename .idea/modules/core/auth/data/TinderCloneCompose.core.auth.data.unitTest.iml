@@ -3,7 +3,7 @@
   <component name="FacetManager">
     <facet external-system-id="GRADLE" type="android" name="Android">
       <configuration>
-        <option name="SELECTED_BUILD_VARIANT" value="debug" />
+        <option name="SELECTED_BUILD_VARIANT" value="mock" />
         <option name="ALLOW_USER_CONFIGURATION" value="false" />
         <option name="MANIFEST_FILE_RELATIVE_PATH" value="/src/main/AndroidManifest.xml" />
         <option name="RES_FOLDER_RELATIVE_PATH" value="/src/main/res" />
@@ -22,9 +22,9 @@
             <flagArg name="noStdlib" arg="true" />
           </flagArguments>
           <stringArguments>
-            <stringArg name="destination" arg="$MODULE_DIR$/../../../../../ui/core/auth/data/build/tmp/kotlin-classes/debugUnitTest" />
+            <stringArg name="destination" arg="$MODULE_DIR$/../../../../../ui/core/auth/data/build/tmp/kotlin-classes/mockUnitTest" />
             <stringArg name="jvmTarget" arg="1.8" />
-            <stringArg name="moduleName" arg="data_debugUnitTest" />
+            <stringArg name="moduleName" arg="data_mockUnitTest" />
             <stringArg name="apiVersion" arg="1.9" />
             <stringArg name="languageVersion" arg="1.9" />
           </stringArguments>
@@ -37,18 +37,18 @@
     </facet>
   </component>
   <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
-    <output-test url="file://$MODULE_DIR$/../../../../../ui/core/auth/data/build/intermediates/javac/debugUnitTest/compileDebugUnitTestJavaWithJavac/classes" />
+    <output-test url="file://$MODULE_DIR$/../../../../../ui/core/auth/data/build/intermediates/javac/mockUnitTest/compileMockUnitTestJavaWithJavac/classes" />
     <exclude-output />
-    <content url="file://$MODULE_DIR$/../../../../../ui/core/auth/data/build/generated/ap_generated_sources/debugUnitTest/out" />
+    <content url="file://$MODULE_DIR$/../../../../../ui/core/auth/data/build/generated/ap_generated_sources/mockUnitTest/out" />
     <content url="file://$MODULE_DIR$/../../../../../ui/core/auth/data/src/test">
       <sourceFolder url="file://$MODULE_DIR$/../../../../../ui/core/auth/data/src/test/java" isTestSource="true" />
     </content>
-    <content url="file://$MODULE_DIR$/../../../../../ui/core/auth/data/src/testDebug" />
+    <content url="file://$MODULE_DIR$/../../../../../ui/core/auth/data/src/testMock" />
     <orderEntry type="jdk" jdkName="Android API 34, extension level 7 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="TinderCloneCompose.core.auth.data.main" scope="TEST" />
     <orderEntry type="module" module-name="TinderCloneCompose.core.auth.domain.main" scope="TEST" />
     <orderEntry type="module" module-name="TinderCloneCompose.core.firebase.main" scope="TEST" />
+    <orderEntry type="module" module-name="TinderCloneCompose.core.auth.data.main" scope="TEST" />
     <orderEntry type="library" scope="TEST" name="Gradle: io.insert-koin:koin-android:3.4.0@aar" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: androidx.appcompat:appcompat:1.7.0@aar" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: androidx.activity:activity:1.8.0@aar" level="project" />
