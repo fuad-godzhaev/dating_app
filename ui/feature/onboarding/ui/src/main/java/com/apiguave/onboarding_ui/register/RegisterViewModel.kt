@@ -44,11 +44,11 @@ class RegisterViewModel(
 
         val account = Account(email = email, password = password)
 
-        signUpUseCase(account).fold({
+        signUpUseCase(account).onSuccess {
             _eventChannel.send(RegisterViewEvent.NavigateToCreateProfile)
-        }, { error ->
+        }.onFailure { error ->
             _eventChannel.send(RegisterViewEvent.RegisterError(error.message ?: "Registration failed"))
-        })
+        }
 
         _uiState.update { RegisterViewState.Ready }
     }

@@ -1,3 +1,6 @@
 # ninja log v7
 2	593	7868922413806844	CMakeFiles/pds_node_bridge.dir/node_bridge.cpp.o	f5d0e1c390b53d62
 598	752	7868922419765343	C:/Users/wirex/Desktop/FYP_GIT/dating_app/ui/core/pds/build/intermediates/cxx/RelWithDebInfo/2i17f2k6/obj/armeabi-v7a/libpds_node_bridge.so	c0b8df18943edcee
+5	13	7869145962209875	clean	85d8a2bba1b9fcba
+13	796	7869148880559715	CMakeFiles/pds_node_bridge.dir/node_bridge.cpp.o	f5d0e1c390b53d62
+797	940	7869148888392291	C:/Users/wirex/Desktop/FYP_GIT/dating_app/ui/core/pds/build/intermediates/cxx/RelWithDebInfo/2i17f2k6/obj/armeabi-v7a/libpds_node_bridge.so	c0b8df18943edcee

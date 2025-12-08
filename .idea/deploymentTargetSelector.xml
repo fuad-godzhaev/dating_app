@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="TinderCloneCompose.app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-12-05T14:07:33.689441800Z">
+        <DropdownSelection timestamp="2025-12-08T13:18:34.061413400Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\wirex\.android\avd\Pixel_8.avd" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=R5CW32CRMTH" />
             </handle>
           </Target>
         </DropdownSelection>

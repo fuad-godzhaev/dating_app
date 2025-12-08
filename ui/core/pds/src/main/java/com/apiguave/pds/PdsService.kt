@@ -1,6 +1,7 @@
 package com.apiguave.pds
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +49,9 @@ class PdsService(private val context: Context) {
                     Log.i(TAG, "Copying Node.js project from assets...")
                     copyNodeProjectFromAssets()
                 }
+
+                // Check for native module compatibility
+                checkNativeModuleCompatibility(nodeProjectPath)
 
                 // Start Node.js runtime with the PDS script
                 val scriptPath = File(nodeProjectPath, "index.js").absolutePath
@@ -161,6 +165,42 @@ class PdsService(private val context: Context) {
             assets.forEach { subFilename ->
                 copyAssetFolder(fullAssetPath, subFilename, targetSubDir)
             }
+        }
+    }
+
+    /**
+     * Checks if native Node.js modules are compatible with the device architecture.
+     * Logs warnings if incompatibilities are detected.
+     */
+    private fun checkNativeModuleCompatibility(nodeProjectPath: File) {
+        val deviceAbi = Build.SUPPORTED_ABIS[0]
+        Log.i(TAG, "Device primary ABI: $deviceAbi")
+        Log.i(TAG, "All supported ABIs: ${Build.SUPPORTED_ABIS.joinToString(", ")}")
+
+        // Check for better-sqlite3 native module
+        val sqliteModule = File(nodeProjectPath, "node_modules/@atproto/pds/node_modules/better-sqlite3/build/Release/better_sqlite3.node")
+
+        if (sqliteModule.exists()) {
+            Log.i(TAG, "Found better-sqlite3 native module at: ${sqliteModule.absolutePath}")
+
+            // Try to determine if it's the right architecture by checking file size
+            // This is not foolproof but gives an indication
+            val fileSize = sqliteModule.length()
+            Log.i(TAG, "better-sqlite3 module size: $fileSize bytes")
+
+            // Warn about potential incompatibility
+            if (deviceAbi.contains("arm") || deviceAbi.contains("aarch64")) {
+                Log.w(TAG, "====================================================")
+                Log.w(TAG, "WARNING: Native module compatibility issue detected!")
+                Log.w(TAG, "Device ABI: $deviceAbi")
+                Log.w(TAG, "The better-sqlite3 module may be compiled for a different platform.")
+                Log.w(TAG, "PDS may fail to start due to architecture mismatch.")
+                Log.w(TAG, "See PDS_NATIVE_MODULES_GUIDE.md for solutions.")
+                Log.w(TAG, "====================================================")
+            }
+        } else {
+            Log.w(TAG, "better-sqlite3 native module not found!")
+            Log.w(TAG, "PDS will fail to start. Check that node_modules was copied correctly.")
         }
     }
 }

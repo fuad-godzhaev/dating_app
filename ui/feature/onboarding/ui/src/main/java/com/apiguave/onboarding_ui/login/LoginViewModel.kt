@@ -35,11 +35,13 @@ class LoginViewModel(
         _uiState.update { LoginViewState.Loading }
         val account = Account(email = email, password = password)
 
-        signInUseCase(account).fold({
+        signInUseCase(account).onSuccess {
             _eventChannel.send(LoginViewEvent.NavigateHome)
-        }, { error ->
+        }.onFailure { error ->
             _eventChannel.send(LoginViewEvent.LoginError(error.message ?: "Sign in failed"))
-        })
+        }
+
+        _uiState.update { LoginViewState.Ready }
     }
 
     fun navigateToRegister() = viewModelScope.launch {
