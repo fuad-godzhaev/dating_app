@@ -3,8 +3,36 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-PDS_ENV_FILE=${PDS_ENV_FILE:-"/pds/pds.env"}
-source "${PDS_ENV_FILE}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
+ENV_FILE="${SCRIPT_DIR}/.env"
+
+# Load environment variables
+if [[ ! -f "${ENV_FILE}" ]]; then
+  echo "ERROR: .env file not found at ${ENV_FILE}"
+  exit 1
+fi
+
+# Source the .env file
+set -a
+source "${ENV_FILE}"
+set +a
+
+# Set defaults and strip carriage returns (Windows compatibility)
+PDS_HOSTNAME="${PDS_HOSTNAME:-localhost}"
+PDS_HOSTNAME="${PDS_HOSTNAME%$'\r'}"
+PDS_PORT="${PDS_PORT:-3002}"
+PDS_PORT="${PDS_PORT%$'\r'}"
+PDS_ADMIN_PASSWORD="${PDS_ADMIN_PASSWORD:-}"
+PDS_ADMIN_PASSWORD="${PDS_ADMIN_PASSWORD%$'\r'}"
+PDS_DEV_MODE="${PDS_DEV_MODE:-false}"
+PDS_DEV_MODE="${PDS_DEV_MODE%$'\r'}"
+
+# Build base URL (use http for local Docker setup)
+if [[ "${PDS_DEV_MODE}" == "true" ]]; then
+  BASE_URL="http://${PDS_HOSTNAME}:${PDS_PORT}"
+else
+  BASE_URL="https://${PDS_HOSTNAME}"
+fi
 
 # curl a URL and fail if the request fails.
 function curl_cmd_get {
@@ -28,17 +56,31 @@ SUBCOMMAND="${1:-}"
 # account list
 #
 if [[ "${SUBCOMMAND}" == "list" ]]; then
-  DIDS="$(curl_cmd_get \
-    "https://${PDS_HOSTNAME}/xrpc/com.atproto.sync.listRepos?limit=100" | jq --raw-output '.repos[].did'
-  )"
+  echo "Listing all accounts..."
+  echo ""
+
+  # Get list of DIDs
+  DIDS_JSON="$(curl_cmd_get "${BASE_URL}/xrpc/com.atproto.sync.listRepos?limit=100")"
+
+  # Build output array
   OUTPUT='[{"handle":"Handle","email":"Email","did":"DID"}'
-  for did in ${DIDS}; do
-    ITEM="$(curl_cmd_get \
-      --user "admin:${PDS_ADMIN_PASSWORD}" \
-      "https://${PDS_HOSTNAME}/xrpc/com.atproto.admin.getAccountInfo?did=${did}"
-    )"
-    OUTPUT="${OUTPUT},${ITEM}"
-  done
+
+  # Process each DID
+  while IFS= read -r did; do
+    if [[ -n "${did}" ]]; then
+      # Strip any whitespace or carriage returns from DID
+      did="${did%$'\r'}"
+      did="${did## }"
+      did="${did%% }"
+
+      ITEM="$(curl --fail --silent --show-error \
+        --user "admin:${PDS_ADMIN_PASSWORD}" \
+        "${BASE_URL}/xrpc/com.atproto.admin.getAccountInfo?did=${did}"
+      )"
+      OUTPUT="${OUTPUT},${ITEM}"
+    fi
+  done < <(echo "${DIDS_JSON}" | jq --raw-output '.repos[].did')
+
   OUTPUT="${OUTPUT}]"
   echo "${OUTPUT}" | jq --raw-output '.[] | [.handle, .email, .did] | @tsv' | column --table
 
@@ -66,11 +108,11 @@ elif [[ "${SUBCOMMAND}" == "create" ]]; then
   INVITE_CODE="$(curl_cmd_post \
     --user "admin:${PDS_ADMIN_PASSWORD}" \
     --data '{"useCount": 1}' \
-    "https://${PDS_HOSTNAME}/xrpc/com.atproto.server.createInviteCode" | jq --raw-output '.code'
+    "${BASE_URL}/xrpc/com.atproto.server.createInviteCode" | jq --raw-output '.code'
   )"
   RESULT="$(curl_cmd_post_nofail \
     --data "{\"email\":\"${EMAIL}\", \"handle\":\"${HANDLE}\", \"password\":\"${PASSWORD}\", \"inviteCode\":\"${INVITE_CODE}\"}" \
-    "https://${PDS_HOSTNAME}/xrpc/com.atproto.server.createAccount"
+    "${BASE_URL}/xrpc/com.atproto.server.createAccount"
   )"
 
   DID="$(echo $RESULT | jq --raw-output '.did')"
@@ -118,7 +160,7 @@ elif [[ "${SUBCOMMAND}" == "delete" ]]; then
   curl_cmd_post \
     --user "admin:${PDS_ADMIN_PASSWORD}" \
     --data "{\"did\": \"${DID}\"}" \
-    "https://${PDS_HOSTNAME}/xrpc/com.atproto.admin.deleteAccount" >/dev/null
+    "${BASE_URL}/xrpc/com.atproto.admin.deleteAccount" >/dev/null
 
   echo "${DID} deleted"
 
@@ -158,7 +200,7 @@ EOF
   curl_cmd_post \
     --user "admin:${PDS_ADMIN_PASSWORD}" \
     --data "${PAYLOAD}" \
-    "https://${PDS_HOSTNAME}/xrpc/com.atproto.admin.updateSubjectStatus" >/dev/null
+    "${BASE_URL}/xrpc/com.atproto.admin.updateSubjectStatus" >/dev/null
 
   echo "${DID} taken down"
 
@@ -196,7 +238,7 @@ EOF
   curl_cmd_post \
     --user "admin:${PDS_ADMIN_PASSWORD}" \
     --data "${PAYLOAD}" \
-    "https://${PDS_HOSTNAME}/xrpc/com.atproto.admin.updateSubjectStatus" >/dev/null
+    "${BASE_URL}/xrpc/com.atproto.admin.updateSubjectStatus" >/dev/null
 
   echo "${DID} untaken down"
 #
@@ -221,7 +263,7 @@ elif [[ "${SUBCOMMAND}" == "reset-password" ]]; then
   curl_cmd_post \
     --user "admin:${PDS_ADMIN_PASSWORD}" \
     --data "{ \"did\": \"${DID}\", \"password\": \"${PASSWORD}\" }" \
-    "https://${PDS_HOSTNAME}/xrpc/com.atproto.admin.updateAccountPassword" >/dev/null
+    "${BASE_URL}/xrpc/com.atproto.admin.updateAccountPassword" >/dev/null
 
   echo
   echo "Password reset for ${DID}"
