@@ -1,0 +1,27 @@
+{
+  "buildFiles": [
+    "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\src\\main\\cpp\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "D:\\Ninja\\ninja.exe",
+      "-C",
+      "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\.cxx\\RelWithDebInfo\\2i17f2k6\\x86_64",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "D:\\Ninja\\ninja.exe",
+    "-C",
+    "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\.cxx\\RelWithDebInfo\\2i17f2k6\\x86_64",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "pds_node_bridge::@6890427a1f51a3e7e1df": {
+      "artifactName": "pds_node_bridge",
+      "abi": "x86_64",
+      "output": "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\build\\intermediates\\cxx\\RelWithDebInfo\\2i17f2k6\\obj\\x86_64\\libpds_node_bridge.so",
+      "runtimeFiles": []
+    }
+  }
+}

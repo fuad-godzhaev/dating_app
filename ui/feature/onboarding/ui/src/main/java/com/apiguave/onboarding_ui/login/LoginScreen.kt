@@ -21,39 +21,55 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun LoginScreen(
-    onNavigateToSignUp: () -> Unit,
-    onNavigateToHome: () -> Unit) {
-    val signInClient: GoogleSignInClient = get()
+    onNavigateToRegister: () -> Unit,
+    onNavigateToHome: () -> Unit
+) {
     val viewModel: LoginViewModel = koinViewModel()
     val uiState by viewModel.uiState.collectAsState()
-
-
-
-    val startForResult = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-        onResult = viewModel::signIn
-    )
-
 
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            viewModel.eventFlow.collect {
-                when(it) {
-                    LoginViewEvent.LoginError -> {
+            viewModel.eventFlow.collect { event ->
+                when (event) {
+                    is LoginViewEvent.LoginError -> {
                         scope.launch {
-                            snackbarHostState.showSnackbar("Login failed. Please try again")
+                            snackbarHostState.showSnackbar(event.message)
                         }
                     }
                     LoginViewEvent.NavigateHome -> onNavigateToHome()
+                    LoginViewEvent.NavigateToRegister -> onNavigateToRegister()
                 }
             }
         }
     }
+
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
+    ) { _ ->
+        LoginView(
+            uiState = uiState,
+            onSignInClicked = { email, password ->
+                viewModel.signIn(email, password)
+            },
+            onRegisterClicked = {
+                viewModel.navigateToRegister()
+            }
+        )
+    }
+
+    // Legacy Google Sign-In - COMMENTED OUT
+    /*
+    val signInClient: GoogleSignInClient = get()
+    val startForResult = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = viewModel::signIn
+    )
 
     Scaffold(
         snackbarHost = {
@@ -67,4 +83,5 @@ fun LoginScreen(
             }
         )
     }
+    */
 }

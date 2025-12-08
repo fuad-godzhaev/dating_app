@@ -1,0 +1,27 @@
+{
+  "buildFiles": [
+    "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\src\\main\\cpp\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "D:\\Ninja\\ninja.exe",
+      "-C",
+      "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\.cxx\\Debug\\2u5k5n6d\\armeabi-v7a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "D:\\Ninja\\ninja.exe",
+    "-C",
+    "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\.cxx\\Debug\\2u5k5n6d\\armeabi-v7a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "pds_node_bridge::@6890427a1f51a3e7e1df": {
+      "artifactName": "pds_node_bridge",
+      "abi": "armeabi-v7a",
+      "output": "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\build\\intermediates\\cxx\\Debug\\2u5k5n6d\\obj\\armeabi-v7a\\libpds_node_bridge.so",
+      "runtimeFiles": []
+    }
+  }
+}

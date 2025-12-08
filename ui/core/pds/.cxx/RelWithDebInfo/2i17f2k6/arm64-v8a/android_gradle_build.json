@@ -1,0 +1,38 @@
+{
+  "buildFiles": [
+    "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\src\\main\\cpp\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "D:\\Ninja\\ninja.exe",
+      "-C",
+      "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\.cxx\\RelWithDebInfo\\2i17f2k6\\arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "D:\\Ninja\\ninja.exe",
+    "-C",
+    "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\.cxx\\RelWithDebInfo\\2i17f2k6\\arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "pds_node_bridge::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "pds_node_bridge",
+      "output": "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\build\\intermediates\\cxx\\RelWithDebInfo\\2i17f2k6\\obj\\arm64-v8a\\libpds_node_bridge.so",
+      "runtimeFiles": []
+    }
+  },
+  "toolchains": {
+    "toolchain": {
+      "cCompilerExecutable": "C:\\Users\\wirex\\AppData\\Local\\Android\\Sdk\\ndk\\26.1.10909125\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang.exe",
+      "cppCompilerExecutable": "C:\\Users\\wirex\\AppData\\Local\\Android\\Sdk\\ndk\\26.1.10909125\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe"
+    }
+  },
+  "cFileExtensions": [],
+  "cppFileExtensions": [
+    "cpp"
+  ]
+}

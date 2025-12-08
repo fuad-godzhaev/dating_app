@@ -1,0 +1,7 @@
+[
+{
+  "directory": "C:/Users/wirex/Desktop/FYP_GIT/dating_app/ui/core/pds/.cxx/RelWithDebInfo/2i17f2k6/x86_64",
+  "command": "C:\\Users\\wirex\\AppData\\Local\\Android\\Sdk\\ndk\\26.1.10909125\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang++.exe --target=x86_64-none-linux-android26 --sysroot=C:/Users/wirex/AppData/Local/Android/Sdk/ndk/26.1.10909125/toolchains/llvm/prebuilt/windows-x86_64/sysroot -Dpds_node_bridge_EXPORTS -IC:/Users/wirex/Desktop/FYP_GIT/dating_app/ui/core/pds/src/main/cpp/../../../libs/include/node -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -std=c++17 -O2 -g -DNDEBUG -fPIC -o CMakeFiles\\pds_node_bridge.dir\\node_bridge.cpp.o -c C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\src\\main\\cpp\\node_bridge.cpp",
+  "file": "C:\\Users\\wirex\\Desktop\\FYP_GIT\\dating_app\\ui\\core\\pds\\src\\main\\cpp\\node_bridge.cpp"
+}
+]

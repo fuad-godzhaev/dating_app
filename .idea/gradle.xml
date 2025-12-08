@@ -21,6 +21,7 @@
             <option value="$PROJECT_DIR$/ui/core/message" />
             <option value="$PROJECT_DIR$/ui/core/message/data" />
             <option value="$PROJECT_DIR$/ui/core/message/domain" />
+            <option value="$PROJECT_DIR$/ui/core/pds" />
             <option value="$PROJECT_DIR$/ui/core/picture" />
             <option value="$PROJECT_DIR$/ui/core/picture/data" />
             <option value="$PROJECT_DIR$/ui/core/picture/domain" />

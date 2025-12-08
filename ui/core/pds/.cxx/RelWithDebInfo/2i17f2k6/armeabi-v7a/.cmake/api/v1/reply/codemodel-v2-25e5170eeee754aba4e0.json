@@ -1,0 +1,59 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.6.0"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"name" : "RelWithDebInfo",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "pds_node_bridge",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "pds_node_bridge::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-pds_node_bridge-RelWithDebInfo-c5ea3ecf2327ecdb3319.json",
+					"name" : "pds_node_bridge",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/wirex/Desktop/FYP_GIT/dating_app/ui/core/pds/.cxx/RelWithDebInfo/2i17f2k6/armeabi-v7a",
+		"source" : "C:/Users/wirex/Desktop/FYP_GIT/dating_app/ui/core/pds/src/main/cpp"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 1
+	}
+}

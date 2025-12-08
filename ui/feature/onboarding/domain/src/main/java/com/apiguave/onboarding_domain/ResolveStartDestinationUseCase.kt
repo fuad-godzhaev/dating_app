@@ -15,6 +15,7 @@ class ResolveStartDestinationUseCase(
 
     suspend operator fun invoke(): Result<StartDestination>  = try {
         val userId = authRepository.userId
+        println("[ResolveStartDestination] auth userId => ${userId ?: "<null>"}")
         if (userId == null) {
             Result.success(StartDestination.SignIn)
         } else if (profileRepository.hasProfile(userId)) {
@@ -23,6 +24,8 @@ class ResolveStartDestinationUseCase(
             Result.success(StartDestination.CreateProfile)
         }
     } catch (e: Exception) {
+        println("[ResolveStartDestination] failed: ${e::class.simpleName} - ${e.message}")
+        e.printStackTrace()
         Result.failure(e)
     }
 }

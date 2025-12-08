@@ -1,9 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    // Google Services plugin removed - not needed for mock build variant
-    // If you need Firebase in the future, uncomment the line below and add google-services.json
-    // alias(libs.plugins.google.services)
+  // alias(libs.plugins.google.services)
 }
 
 android {
@@ -110,5 +108,7 @@ dependencies {
     implementation(project(":core:picture:domain"))
     implementation(project(":core:profile:domain"))
 
+    // PDS module
+    implementation(project(":core:pds"))
 
 }

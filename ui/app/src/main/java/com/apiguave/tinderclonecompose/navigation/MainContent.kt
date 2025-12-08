@@ -12,6 +12,7 @@ import androidx.navigation.compose.rememberNavController
 import com.apiguave.onboarding_ui.create_profile.CreateProfileScreen
 import com.apiguave.core_ui.theme.TinderCloneComposeTheme
 import com.apiguave.onboarding_ui.login.LoginScreen
+import com.apiguave.onboarding_ui.register.RegisterScreen
 import com.apiguave.onboarding_ui.splash.SplashScreen
 import com.apiguave.home_ui.HomeScreen
 import com.apiguave.chat_ui.chat.ChatScreen
@@ -61,8 +62,23 @@ fun NavigationGraph() {
                             }
                         }
                     },
-                    onNavigateToSignUp = {
-                        navController.navigate(Routes.SignUp)
+                    onNavigateToRegister = {
+                        navController.navigate(Routes.Register)
+                    }
+                )
+            }
+
+            animatedComposable(Routes.Register) {
+                RegisterScreen(
+                    onNavigateToLogin = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToCreateProfile = {
+                        navController.navigate(Routes.SignUp) {
+                            popUpTo(Routes.Register) {
+                                inclusive = true
+                            }
+                        }
                     }
                 )
             }
