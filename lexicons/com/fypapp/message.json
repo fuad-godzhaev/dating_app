@@ -1,0 +1,47 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.message",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A message sent between matched users",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["recipient", "text", "createdAt"],
+        "properties": {
+          "recipient": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the message recipient"
+          },
+          "text": {
+            "type": "string",
+            "description": "Message text content",
+            "maxLength": 1000
+          },
+          "media": {
+            "type": "blob",
+            "accept": ["image/png", "image/jpeg", "image/webp", "image/gif"],
+            "maxSize": 5000000,
+            "description": "Optional media attachment"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "isRead": {
+            "type": "boolean",
+            "description": "Whether the message has been read",
+            "default": false
+          },
+          "readAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the message was read"
+          }
+        }
+      }
+    }
+  }
+}

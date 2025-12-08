@@ -1,0 +1,166 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.profile",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A dating profile record",
+      "key": "self",
+      "record": {
+        "type": "object",
+        "required": ["displayName", "birthdate", "gender", "lookingFor"],
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Display name shown on profile",
+            "maxLength": 64
+          },
+          "bio": {
+            "type": "string",
+            "description": "Profile bio/description",
+            "maxLength": 500
+          },
+          "birthdate": {
+            "type": "string",
+            "format": "datetime",
+            "description": "User's birthdate (for age verification and display)"
+          },
+          "gender": {
+            "type": "string",
+            "description": "User's gender identity",
+            "knownValues": ["man", "woman", "non-binary", "other", "prefer-not-to-say"]
+          },
+          "lookingFor": {
+            "type": "array",
+            "description": "Gender(s) the user is interested in",
+            "items": {
+              "type": "string"
+            },
+            "maxLength": 5
+          },
+          "location": {
+            "type": "ref",
+            "ref": "#location"
+          },
+          "photos": {
+            "type": "array",
+            "description": "Profile photos",
+            "items": {
+              "type": "blob",
+              "accept": ["image/png", "image/jpeg", "image/webp"],
+              "maxSize": 5000000
+            },
+            "maxLength": 6,
+            "minLength": 1
+          },
+          "interests": {
+            "type": "array",
+            "description": "User's interests/hobbies",
+            "items": {
+              "type": "string",
+              "maxLength": 50
+            },
+            "maxLength": 10
+          },
+          "height": {
+            "type": "integer",
+            "description": "Height in centimeters",
+            "minimum": 100,
+            "maximum": 250
+          },
+          "occupation": {
+            "type": "string",
+            "description": "User's occupation",
+            "maxLength": 100
+          },
+          "education": {
+            "type": "string",
+            "description": "Education level",
+            "knownValues": ["high-school", "some-college", "bachelors", "masters", "phd", "other"]
+          },
+          "relationshipType": {
+            "type": "string",
+            "description": "Type of relationship seeking",
+            "knownValues": ["long-term", "short-term", "friendship", "casual", "open-to-anything"]
+          },
+          "smoking": {
+            "type": "string",
+            "knownValues": ["never", "occasionally", "regularly", "prefer-not-to-say"]
+          },
+          "drinking": {
+            "type": "string",
+            "knownValues": ["never", "occasionally", "regularly", "prefer-not-to-say"]
+          },
+          "children": {
+            "type": "string",
+            "knownValues": ["have-and-want-more", "have-dont-want-more", "dont-have-want", "dont-have-dont-want", "prefer-not-to-say"]
+          },
+          "pets": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "knownValues": ["dog", "cat", "bird", "fish", "reptile", "other"]
+            },
+            "maxLength": 5
+          },
+          "languages": {
+            "type": "array",
+            "description": "Languages spoken",
+            "items": {
+              "type": "string",
+              "maxLength": 50
+            },
+            "maxLength": 10
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether profile is active and visible to others",
+            "default": true
+          },
+          "isPremium": {
+            "type": "boolean",
+            "description": "Whether user has premium subscription",
+            "default": false
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    },
+    "location": {
+      "type": "object",
+      "description": "User location information",
+      "required": ["city"],
+      "properties": {
+        "city": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "state": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "country": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "latitude": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "longitude": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        }
+      }
+    }
+  }
+}

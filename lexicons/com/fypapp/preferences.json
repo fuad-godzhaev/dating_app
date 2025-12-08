@@ -1,0 +1,142 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.preferences",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "User's discovery and match preferences",
+      "key": "self",
+      "record": {
+        "type": "object",
+        "properties": {
+          "ageRange": {
+            "type": "ref",
+            "ref": "#ageRange"
+          },
+          "distanceMax": {
+            "type": "integer",
+            "description": "Maximum distance in kilometers",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 50
+          },
+          "showMe": {
+            "type": "array",
+            "description": "Gender preferences for discovery",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dealBreakers": {
+            "type": "ref",
+            "ref": "#dealBreakers"
+          },
+          "notifications": {
+            "type": "ref",
+            "ref": "#notificationSettings"
+          },
+          "privacy": {
+            "type": "ref",
+            "ref": "#privacySettings"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    },
+    "ageRange": {
+      "type": "object",
+      "required": ["min", "max"],
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 18,
+          "maximum": 100
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 18,
+          "maximum": 100
+        }
+      }
+    },
+    "dealBreakers": {
+      "type": "object",
+      "description": "Preferences that filter out incompatible matches",
+      "properties": {
+        "smoking": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "drinking": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "relationshipType": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notificationSettings": {
+      "type": "object",
+      "properties": {
+        "newMatches": {
+          "type": "boolean",
+          "default": true
+        },
+        "messages": {
+          "type": "boolean",
+          "default": true
+        },
+        "likes": {
+          "type": "boolean",
+          "default": true
+        },
+        "superLikes": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "privacySettings": {
+      "type": "object",
+      "properties": {
+        "showDistance": {
+          "type": "boolean",
+          "description": "Show distance on profile",
+          "default": true
+        },
+        "showActiveStatus": {
+          "type": "boolean",
+          "description": "Show when user is active",
+          "default": true
+        },
+        "showAge": {
+          "type": "boolean",
+          "description": "Show exact age",
+          "default": true
+        },
+        "incognitoMode": {
+          "type": "boolean",
+          "description": "Only visible to users you've liked (premium)",
+          "default": false
+        }
+      }
+    }
+  }
+}

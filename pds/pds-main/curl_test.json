@@ -1,0 +1,9 @@
+{
+  "repo": "alice2.test",
+  "collection": "app.bsky.actor.profile",
+  "record": {
+    "$type": "app.bsky.actor.createRecord",
+    "displayName": "Fuad",
+    "description": "DESCRIPTION"
+  }
+}

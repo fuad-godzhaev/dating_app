@@ -3,7 +3,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-PDSADMIN_BASE_URL="https://raw.githubusercontent.com/bluesky-social/pds/main/pdsadmin"
+#PDSADMIN_BASE_URL="https://raw.githubusercontent.com/bluesky-social/pds/main/pdsadmin"
+
+COMMANDS_DIR="C:\Users\wirex\Desktop\FYP_GIT\dating_app\pds\pds-main\pdsadmin"
 
 # Command to run.
 COMMAND="${1:-help}"
@@ -16,12 +18,24 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 
 # Download the script, if it exists.
-SCRIPT_URL="${PDSADMIN_BASE_URL}/${COMMAND}.sh"
+SCRIPT_URL="${COMMANDS_DIR}/${COMMAND}.sh"
 SCRIPT_FILE="$(mktemp /tmp/pdsadmin.${COMMAND}.XXXXXX)"
 
-if ! curl --fail --silent --show-error --location --output "${SCRIPT_FILE}" "${SCRIPT_URL}"; then
-  echo "ERROR: ${COMMAND} not found"
-  exit 2
+#if ! curl --fail --silent --show-error --location --output "${SCRIPT_FILE}" "${SCRIPT_URL}"; then
+#  echo "ERROR: ${COMMAND} not found"
+#  exit 2
+#fi
+
+if [[ ! -f "${SCRIPT_URL}" ]]; then
+  echo "ERROR: Command '${COMMAND}' not found"
+  echo ""
+  echo "Available commands:"
+  for script in "${COMMANDS_DIR}"/*.sh; do
+    if [[ -f "${script}" ]]; then
+      basename "${script}" .sh
+    fi
+  done
+  exit 1
 fi
 
 chmod +x "${SCRIPT_FILE}"

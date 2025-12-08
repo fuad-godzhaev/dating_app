@@ -1,0 +1,78 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.getConversation",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get messages in a conversation with a matched user",
+      "parameters": {
+        "type": "params",
+        "required": ["with"],
+        "properties": {
+          "with": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the user to get conversation with"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Pagination cursor"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["messages"],
+          "properties": {
+            "messages": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "#messageView"
+              }
+            },
+            "cursor": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "errors": [
+        {
+          "name": "NotMatched",
+          "description": "Users are not matched"
+        }
+      ]
+    },
+    "messageView": {
+      "type": "object",
+      "required": ["uri", "cid", "message", "sender"],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "cid": {
+          "type": "string",
+          "format": "cid"
+        },
+        "message": {
+          "type": "ref",
+          "ref": "com.fypapp.message"
+        },
+        "sender": {
+          "type": "string",
+          "format": "did"
+        }
+      }
+    }
+  }
+}

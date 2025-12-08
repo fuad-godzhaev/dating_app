@@ -1,0 +1,63 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.profile",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A dating profile record",
+      "record": {
+        "type": "object",
+        "required": ["displayName", "age", "bio", "createdAt"],
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 18,
+            "maximum": 120
+          },
+          "bio": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "interests": {
+            "type": "array",
+            "items": { "type": "string" },
+            "maxLength": 10
+          },
+          "location": {
+            "type": "object",
+            "properties": {
+              "latitude": { "type": "number" },
+              "longitude": { "type": "number" },
+              "city": { "type": "string" }
+            }
+          },
+          "photos": {
+            "type": "array",
+            "items": { "type": "blob" },
+            "maxLength": 6
+          },
+          "preferences": {
+            "type": "object",
+            "properties": {
+              "minAge": { "type": "integer" },
+              "maxAge": { "type": "integer" },
+              "maxDistance": { "type": "number" }
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  },
+
+
+
+}

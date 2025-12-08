@@ -1,0 +1,81 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.discover",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get profiles to swipe on based on user preferences",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10,
+            "description": "Number of profiles to return"
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Pagination cursor"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["profiles"],
+          "properties": {
+            "profiles": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "#profileCard"
+              }
+            },
+            "cursor": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "profileCard": {
+      "type": "object",
+      "description": "A simplified profile view for discovery",
+      "required": ["did", "profile"],
+      "properties": {
+        "did": {
+          "type": "string",
+          "format": "did"
+        },
+        "profile": {
+          "type": "ref",
+          "ref": "com.fypapp.profile"
+        },
+        "distance": {
+          "type": "number",
+          "description": "Distance in kilometers"
+        },
+        "matchScore": {
+          "type": "integer",
+          "description": "Compatibility score (0-100)",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "commonInterests": {
+          "type": "array",
+          "description": "Interests shared with viewer",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recentlyActive": {
+          "type": "boolean",
+          "description": "User was active in last 24 hours"
+        }
+      }
+    }
+  }
+}

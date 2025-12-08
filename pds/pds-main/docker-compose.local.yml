@@ -1,15 +1,13 @@
-version: '3.9'
-
 services:
   # Caddy HTTPS Reverse Proxy
   caddy:
     container_name: pds-caddy-local
     image: caddy:2-alpine
     ports:
-      - "443:443"
-      - "80:80"
+      - "8443:8443"
+      - "8888:8888"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile:/Caddyfile
       - ./data/caddy:/data
       - ./data/caddy-config:/config
     restart: unless-stopped
@@ -21,16 +19,15 @@ services:
   # PDS Server
   pds:
     container_name: pds-local
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/bluesky-social/pds:0.4
     ports:
       - "3002:3002"
     volumes:
       - ./data:/app/data
-      - ./.env.https:/app/.env
     environment:
       - NODE_ENV=development
+    env_file:
+      - .env
     restart: unless-stopped
     networks:
       - pds-network

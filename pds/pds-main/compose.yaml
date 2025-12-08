@@ -25,7 +25,7 @@ services:
         source: /pds
         target: /pds
     env_file:
-      - /pds/pds.env
+      - .env
 
   # Watchtower Service for Automatic Docker Container Updates
   watchtower:

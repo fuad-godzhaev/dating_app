@@ -6,7 +6,7 @@ Head over to the [ATProto Touchers Discord](https://discord.atprotocol.dev/) to 
 
 ## Table of Contents
 
-<!-- markdown-toc -i README.md -->
+<!-- markdown-toc -i README2.md -->
 
 <!-- toc -->
 

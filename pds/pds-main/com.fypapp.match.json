@@ -1,0 +1,37 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.match",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A match between two users",
+      "record": {
+        "type": "object",
+        "required": ["userA", "userB", "matchedAt"],
+        "properties": {
+          "userA": {
+            "type": "string",
+            "description": "DID of first user"
+          },
+          "userB": {
+            "type": "string",
+            "description": "DID of second user"
+          },
+          "matchedAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "conversationStarted": {
+            "type": "boolean",
+            "default": false
+          },
+          "lastMessageAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

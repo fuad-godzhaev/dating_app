@@ -37,3 +37,5 @@ include ':core:match:domain'
 include ':core:profile:data'
 include ':core:profile:domain'
 include ':feature:onboarding:domain'
+
+include 'core:pds'

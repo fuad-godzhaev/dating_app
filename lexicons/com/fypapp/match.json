@@ -1,0 +1,41 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.match",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A mutual match between two users",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["user1", "user2", "createdAt"],
+        "properties": {
+          "user1": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of first user in the match"
+          },
+          "user2": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of second user in the match"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the match is still active (not unmatched)",
+            "default": true
+          },
+          "lastMessageAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp of last message in this match"
+          }
+        }
+      }
+    }
+  }
+}
