@@ -66,6 +66,47 @@ android {
             assets.srcDirs("src/main/assets")
         }
     }
+
+    packagingOptions {
+        // Exclude unnecessary files from node_modules to reduce APK size and memory usage
+        resources.excludes.addAll(listOf(
+            // Exclude documentation and markdown files
+            "**/node_modules/**/*.md",
+            "**/node_modules/**/*.markdown",
+            "**/node_modules/**/README",
+            "**/node_modules/**/CHANGELOG",
+            "**/node_modules/**/LICENSE",
+            "**/node_modules/**/CONTRIBUTING",
+            // Exclude source maps
+            "**/node_modules/**/*.map",
+            // Exclude TypeScript definitions
+            "**/node_modules/**/*.d.ts",
+            "**/node_modules/**/*.d.ts.map",
+            // Exclude test files
+            "**/node_modules/**/test/**",
+            "**/node_modules/**/tests/**",
+            "**/node_modules/**/__tests__/**",
+            "**/node_modules/**/*.test.js",
+            "**/node_modules/**/*.spec.js",
+            // Exclude build artifacts for other platforms
+            "**/node_modules/**/build/Debug/**",
+            "**/node_modules/**/build/win32-**/**",
+            "**/node_modules/**/build/linux-**/**",
+            "**/node_modules/**/build/darwin-**/**",
+            // Exclude documentation directories
+            "**/node_modules/**/docs/**",
+            "**/node_modules/**/doc/**",
+            "**/node_modules/**/examples/**",
+            "**/node_modules/**/example/**",
+            // Exclude config files
+            "**/node_modules/**/.npmignore",
+            "**/node_modules/**/.gitignore",
+            "**/node_modules/**/.editorconfig",
+            "**/node_modules/**/.eslintrc*",
+            "**/node_modules/**/.prettierrc*",
+            "**/node_modules/**/tsconfig.json"
+        ))
+    }
 }
 
 dependencies {

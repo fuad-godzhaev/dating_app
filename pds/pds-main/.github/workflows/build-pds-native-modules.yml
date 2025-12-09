@@ -32,8 +32,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'pds/pds-main/service/package-lock.json'
 
-      - name: Install prebuild-for-nodejs-mobile
-        run: npm install -g prebuild-for-nodejs-mobile
+      - name: Install prebuild-for-nodejs-mobile with upgraded gyp
+        run: |
+          # Install prebuild-for-nodejs-mobile globally
+          npm install -g prebuild-for-nodejs-mobile
+
+          # Upgrade nodejs-mobile-gyp to v0.4.0 (Python 3 compatible)
+          cd $(npm root -g)/prebuild-for-nodejs-mobile
+          npm install nodejs-mobile-gyp@0.4.0 --save
+
+          # Verify the upgrade
+          npm list nodejs-mobile-gyp
 
       - name: Create build directory
         run: mkdir -p build/nodejs-project
