@@ -27,10 +27,18 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'pds/pds-main/service/package-lock.json'
 
-      - name: Ensure Python 3 available (setup for future steps) 
-        uses: actions/setup-python@v4 
-        with: 
-          python-version: '3.x'
+      - name: Setup Python 3
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure node-gyp Python
+        run: |
+          echo "PYTHON=${{ steps.setup-python.outputs.python-path }}" >> $GITHUB_ENV
+          npm config set python "${{ steps.setup-python.outputs.python-path }}"
+          python --version
+          npm config get python
 
       - name: Install prebuild-for-nodejs-mobile
         run: npm install -g prebuild-for-nodejs-mobile
