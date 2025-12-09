@@ -32,11 +32,6 @@ jobs:
         with: 
           python-version: '3.x'
 
-      - name: Install dependencies (force node-gyp to use python3) 
-        env: 
-          PYTHON: /usr/bin/python3 
-        run: npm ci
-
       - name: Install prebuild-for-nodejs-mobile
         run: npm install -g prebuild-for-nodejs-mobile
 
