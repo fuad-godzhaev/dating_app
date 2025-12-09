@@ -20,19 +20,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Python 2 (required by nodejs-mobile-gyp v0.3.1)
-        run: |
-          # nodejs-mobile-gyp v0.3.1 uses Python 2 syntax and cannot work with Python 3
-          sudo apt-get update
-          sudo apt-get install -y python2 python2-dev
-
-          # Create symlinks
-          sudo ln -sf /usr/bin/python2 /usr/local/bin/python
-          sudo ln -sf /usr/bin/python2 /usr/local/bin/python2
-
-          # Verify
-          python --version
-          python2 --version
+      - name: Setup Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -41,8 +32,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'pds/pds-main/service/package-lock.json'
 
-      - name: Install prebuild-for-nodejs-mobile
-        run: npm install -g prebuild-for-nodejs-mobile
+      - name: Install prebuild-for-nodejs-mobile with upgraded gyp
+        run: |
+          # Install prebuild-for-nodejs-mobile globally
+          npm install -g prebuild-for-nodejs-mobile
+
+          # Upgrade nodejs-mobile-gyp to v0.4.0 (Python 3 compatible)
+          cd $(npm root -g)/prebuild-for-nodejs-mobile
+          npm install nodejs-mobile-gyp@0.4.0 --save
+
+          # Verify the upgrade
+          npm list nodejs-mobile-gyp
 
       - name: Create build directory
         run: mkdir -p build/nodejs-project
