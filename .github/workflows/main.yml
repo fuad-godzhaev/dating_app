@@ -34,11 +34,15 @@ jobs:
           python-version: '3.11'
 
       - name: Configure node-gyp Python
+        env:
+          PYTHON_PATH: ${{ steps.setup-python.outputs.python-path }}
         run: |
-          echo "PYTHON=${{ steps.setup-python.outputs.python-path }}" >> $GITHUB_ENV
-          npm config set python "${{ steps.setup-python.outputs.python-path }}"
+          {
+            echo "PYTHON=$PYTHON_PATH"
+            echo "npm_config_python=$PYTHON_PATH"
+          } >> $GITHUB_ENV
           python --version
-          npm config get python
+          echo "node-gyp python: $npm_config_python"
 
       - name: Install prebuild-for-nodejs-mobile
         run: npm install -g prebuild-for-nodejs-mobile
