@@ -27,6 +27,13 @@ android {
                 )
             }
         }
+
+    }
+
+    // Prevent Android from compressing certain file types in assets
+    // This ensures Node.js can read files correctly
+    androidResources {
+        noCompress.addAll(listOf("js", "json", "node", "cjs", "mjs"))
     }
 
     buildTypes {
@@ -68,43 +75,29 @@ android {
     }
 
     packagingOptions {
-        // Exclude unnecessary files from node_modules to reduce APK size and memory usage
+        // Exclude only truly unnecessary files from node_modules to reduce APK size
+        // Be careful not to exclude actual source code!
         resources.excludes.addAll(listOf(
-            // Exclude documentation and markdown files
+            // Exclude documentation files only
             "**/node_modules/**/*.md",
             "**/node_modules/**/*.markdown",
-            "**/node_modules/**/README",
-            "**/node_modules/**/CHANGELOG",
-            "**/node_modules/**/LICENSE",
-            "**/node_modules/**/CONTRIBUTING",
             // Exclude source maps
             "**/node_modules/**/*.map",
-            // Exclude TypeScript definitions
+            // Exclude TypeScript definitions (not needed at runtime)
             "**/node_modules/**/*.d.ts",
             "**/node_modules/**/*.d.ts.map",
-            // Exclude test files
+            // Exclude test directories
             "**/node_modules/**/test/**",
             "**/node_modules/**/tests/**",
             "**/node_modules/**/__tests__/**",
-            "**/node_modules/**/*.test.js",
-            "**/node_modules/**/*.spec.js",
-            // Exclude build artifacts for other platforms
-            "**/node_modules/**/build/Debug/**",
-            "**/node_modules/**/build/win32-**/**",
-            "**/node_modules/**/build/linux-**/**",
-            "**/node_modules/**/build/darwin-**/**",
-            // Exclude documentation directories
-            "**/node_modules/**/docs/**",
-            "**/node_modules/**/doc/**",
+            // Exclude example directories
             "**/node_modules/**/examples/**",
             "**/node_modules/**/example/**",
-            // Exclude config files
+            // Exclude git/npm config files
             "**/node_modules/**/.npmignore",
             "**/node_modules/**/.gitignore",
-            "**/node_modules/**/.editorconfig",
             "**/node_modules/**/.eslintrc*",
-            "**/node_modules/**/.prettierrc*",
-            "**/node_modules/**/tsconfig.json"
+            "**/node_modules/**/.prettierrc*"
         ))
     }
 }
@@ -118,6 +111,67 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+// Task to patch better-sqlite3 for nodejs-mobile
+tasks.register("patchBetterSqlite3") {
+    description = "Patches better-sqlite3 to load prebuilts on Android"
+
+    doLast {
+        val databaseJsPath = file("${projectDir}/src/main/assets/nodejs-project/node_modules/better-sqlite3/lib/database.js")
+
+        if (!databaseJsPath.exists()) {
+            println("⚠ better-sqlite3 not found, skipping patch")
+            return@doLast
+        }
+
+        var content = databaseJsPath.readText()
+
+        // Check if already patched
+        if (content.contains("nodejs-mobile prebuilds")) {
+            println("✓ better-sqlite3 already patched")
+            return@doLast
+        }
+
+        // Apply patch to load from prebuilds directory first
+        val oldCode = """	// Load the native addon
+	let addon;
+	if (nativeBinding == null) {
+		addon = DEFAULT_ADDON || (DEFAULT_ADDON = require('bindings')('better_sqlite3.node'));
+	} else if (typeof nativeBinding === 'string') {"""
+
+        val newCode = """	// Load the native addon
+	let addon;
+	if (nativeBinding == null) {
+		// Try loading from nodejs-mobile prebuilds directory first (for Android)
+		if (!DEFAULT_ADDON) {
+			try {
+				const moduleDir = path.join(__dirname, '..');
+				const arch = process.arch === 'arm64' ? 'android-arm64' :
+							 process.arch === 'arm' ? 'android-arm' :
+							 process.arch === 'x64' ? 'android-x64' : null;
+				if (arch) {
+					const prebuildPath = path.join(moduleDir, 'prebuilds', arch, 'better_sqlite3.node');
+					if (fs.existsSync(prebuildPath)) {
+						console.log('[better-sqlite3] Loading from prebuilds:', prebuildPath);
+						DEFAULT_ADDON = require(prebuildPath);
+					}
+				}
+			} catch (e) {
+				console.log('[better-sqlite3] Failed to load from prebuilds, trying bindings:', e.message);
+			}
+		}
+		addon = DEFAULT_ADDON || (DEFAULT_ADDON = require('bindings')('better_sqlite3.node'));
+	} else if (typeof nativeBinding === 'string') {"""
+
+        if (content.contains(oldCode)) {
+            content = content.replace(oldCode, newCode)
+            databaseJsPath.writeText(content)
+            println("✓ better-sqlite3 patched successfully")
+        } else {
+            println("⚠ Could not find code to patch in better-sqlite3")
+        }
+    }
 }
 
 // Task to copy PDS source code (without node_modules)
@@ -140,6 +194,8 @@ tasks.register<Copy>("copyPdsSourceToAssets") {
 
     // Destination: assets/nodejs-project
     into("${projectDir}/src/main/assets/nodejs-project")
+
+    finalizedBy("patchBetterSqlite3")
 
     doLast {
         println("PDS source copied to assets/nodejs-project")

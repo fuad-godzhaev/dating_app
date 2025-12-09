@@ -108,7 +108,7 @@ dependencies {
     implementation(project(":core:picture:domain"))
     implementation(project(":core:profile:domain"))
 
-    // PDS module
-    implementation(project(":core:pds"))
+    // PDS module - DISABLED: Using external PDS from Termux on localhost:3000
+    // implementation(project(":core:pds"))
 
 }

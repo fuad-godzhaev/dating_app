@@ -120,6 +120,7 @@ class PdsService(private val context: Context) {
 
         val nodeProjectPath = File(context.filesDir, NODE_PROJECT_DIR)
         if (nodeProjectPath.exists()) {
+            Log.i(TAG, "Removing existing nodejs-project directory...")
             nodeProjectPath.deleteRecursively()
         }
         nodeProjectPath.mkdirs()
@@ -131,8 +132,34 @@ class PdsService(private val context: Context) {
                 throw Exception("No files found in assets/$NODE_PROJECT_DIR")
             }
 
+            Log.i(TAG, "Found ${assetFiles.size} items in assets/$NODE_PROJECT_DIR:")
             assetFiles.forEach { filename ->
+                Log.d(TAG, "  - $filename")
+            }
+
+            assetFiles.forEach { filename ->
+                Log.i(TAG, "Copying: $filename")
                 copyAssetFolder(NODE_PROJECT_DIR, filename, nodeProjectPath)
+            }
+
+            // Verify critical files exist
+            val indexJs = File(nodeProjectPath, "index.js")
+            val nodeModules = File(nodeProjectPath, "node_modules")
+            val dotenv = File(nodeProjectPath, ".env")
+
+            Log.i(TAG, "Verification:")
+            Log.i(TAG, "  index.js exists: ${indexJs.exists()}")
+            Log.i(TAG, "  node_modules exists: ${nodeModules.exists()}")
+            Log.i(TAG, "  node_modules is directory: ${nodeModules.isDirectory}")
+            Log.i(TAG, "  .env exists: ${dotenv.exists()}")
+
+            if (nodeModules.exists() && nodeModules.isDirectory) {
+                val nodeModulesCount = nodeModules.listFiles()?.size ?: 0
+                Log.i(TAG, "  node_modules contains $nodeModulesCount items")
+
+                // Check for dotenv specifically
+                val dotenvModule = File(nodeModules, "dotenv")
+                Log.i(TAG, "  dotenv module exists: ${dotenvModule.exists()}")
             }
 
             Log.i(TAG, "Node.js project copied successfully to ${nodeProjectPath.absolutePath}")
