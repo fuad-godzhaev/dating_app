@@ -1,0 +1,127 @@
+name: Build PDS Native Modules for Android
+
+on:
+  # Trigger on manual workflow dispatch
+  workflow_dispatch:
+
+  # Trigger on push to specific paths
+  push:
+    paths:
+      - 'pds/pds-main/service/package.json'
+      - 'pds/pds-main/service/package-lock.json'
+      - '.github/workflows/build-pds-native-modules.yml'
+
+jobs:
+  build-native-modules:
+    name: Build Native Modules for Android
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'pds/pds-main/service/package-lock.json'
+
+      - name: Install prebuild-for-nodejs-mobile
+        run: npm install -g prebuild-for-nodejs-mobile
+
+      - name: Create build directory
+        run: mkdir -p build/nodejs-project
+
+      - name: Copy PDS source files
+        run: |
+          cp pds/pds-main/service/index.js build/nodejs-project/
+          cp pds/pds-main/service/package.json build/nodejs-project/
+          cp pds/pds-main/service/package-lock.json build/nodejs-project/ || echo "No package-lock.json found"
+          cp pds/pds-main/.env build/nodejs-project/ || echo "No .env found"
+
+      - name: Install Node.js dependencies (skip native builds)
+        working-directory: build/nodejs-project
+        run: npm install --omit=dev --ignore-scripts
+
+      - name: Build native modules for android-arm64
+        working-directory: build/nodejs-project
+        run: |
+          echo "Building native modules for android-arm64..."
+          cd node_modules/better-sqlite3
+          prebuild-for-nodejs-mobile android-arm64
+
+      - name: Build native modules for android-arm (32-bit)
+        working-directory: build/nodejs-project
+        run: |
+          echo "Building native modules for android-arm (32-bit)..."
+          cd node_modules/better-sqlite3
+          prebuild-for-nodejs-mobile android-arm
+
+      - name: Build native modules for android-x64 (emulators)
+        working-directory: build/nodejs-project
+        run: |
+          echo "Building native modules for android-x64..."
+          cd node_modules/better-sqlite3
+          prebuild-for-nodejs-mobile android-x64
+
+      - name: Verify built binaries
+        working-directory: build/nodejs-project
+        run: |
+          echo "========================================="
+          echo "Checking for built native modules..."
+          echo "========================================="
+
+          # Check for arm64-v8a
+          if [ -f "node_modules/better-sqlite3/build/Release/better_sqlite3.node" ]; then
+            echo "✓ better_sqlite3.node found"
+            ls -lh node_modules/better-sqlite3/build/Release/better_sqlite3.node
+          else
+            echo "✗ better_sqlite3.node NOT found"
+            echo "Searching for .node files..."
+            find node_modules/better-sqlite3 -name "*.node" -type f
+          fi
+
+          echo ""
+          echo "Node modules directory structure:"
+          ls -la node_modules/better-sqlite3/build/ || echo "No build directory"
+
+      - name: Package node_modules
+        working-directory: build
+        run: |
+          echo "Packaging node_modules for Android..."
+          tar -czf nodejs-project-android.tar.gz nodejs-project/
+          ls -lh nodejs-project-android.tar.gz
+
+      - name: Upload built node_modules as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pds-native-modules-android
+          path: build/nodejs-project-android.tar.gz
+          retention-days: 90
+
+      - name: Create release with binaries (if tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/nodejs-project-android.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build summary
+        run: |
+          echo "=========================================" >> $GITHUB_STEP_SUMMARY
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Native modules built successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifact Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Name**: pds-native-modules-android" >> $GITHUB_STEP_SUMMARY
+          echo "- **Size**: $(du -h build/nodejs-project-android.tar.gz | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          echo "- **ABIs**: arm64-v8a, armeabi-v7a, x86_64" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Download the artifact from this workflow run" >> $GITHUB_STEP_SUMMARY
+          echo "2. Extract to: \`ui/core/pds/src/main/assets/\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Build your Android app" >> $GITHUB_STEP_SUMMARY
+          echo "=========================================" >> $GITHUB_STEP_SUMMARY
