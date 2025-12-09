@@ -20,10 +20,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python 3
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+      - name: Install Python 2 (required by nodejs-mobile-gyp v0.3.1)
+        run: |
+          # nodejs-mobile-gyp v0.3.1 uses Python 2 syntax and cannot work with Python 3
+          sudo apt-get update
+          sudo apt-get install -y python2 python2-dev
+
+          # Create symlinks
+          sudo ln -sf /usr/bin/python2 /usr/local/bin/python
+          sudo ln -sf /usr/bin/python2 /usr/local/bin/python2
+
+          # Verify
+          python --version
+          python2 --version
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
