@@ -27,11 +27,11 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'pds/pds-main/service/package-lock.json'
 
-      - name: Setup Python 3
+      - name: Setup Python 2.7 for node-gyp
         id: setup-python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '2.7'
 
       - name: Configure node-gyp Python
         env:
