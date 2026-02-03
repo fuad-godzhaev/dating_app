@@ -14,11 +14,16 @@ on:
 jobs:
   build-native-modules:
     name: Build Native Modules for Android
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # Use 22.04 for better compatibility with nodejs-mobile-gyp
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -27,25 +32,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'pds/pds-main/service/package-lock.json'
 
-      - name: Setup Python 2.7 for node-gyp
-        id: setup-python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '2.7'
-
-      - name: Configure node-gyp Python
-        env:
-          PYTHON_PATH: ${{ steps.setup-python.outputs.python-path }}
+      - name: Install prebuild-for-nodejs-mobile with upgraded gyp
         run: |
-          {
-            echo "PYTHON=$PYTHON_PATH"
-            echo "npm_config_python=$PYTHON_PATH"
-          } >> $GITHUB_ENV
-          python --version
-          echo "node-gyp python: $npm_config_python"
+          # Install prebuild-for-nodejs-mobile globally
+          npm install -g prebuild-for-nodejs-mobile
 
-      - name: Install prebuild-for-nodejs-mobile
-        run: npm install -g prebuild-for-nodejs-mobile
+          # Upgrade nodejs-mobile-gyp to v0.4.0 (Python 3 compatible)
+          cd $(npm root -g)/prebuild-for-nodejs-mobile
+          npm install nodejs-mobile-gyp@0.4.0 --save
+
+          # Verify the upgrade
+          npm list nodejs-mobile-gyp
 
       - name: Create build directory
         run: mkdir -p build/nodejs-project
