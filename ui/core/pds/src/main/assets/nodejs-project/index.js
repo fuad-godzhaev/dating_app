@@ -1,7 +1,6 @@
 "use strict";
 // Load environment variables from .env file
-// In Android, .env is copied to the same directory as index.js
-require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
 const {
   PDS,

@@ -6,12 +6,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
-import androidx.compose.runtime.*
+import androidx.compose.material.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,19 +19,14 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.apiguave.auth_ui.extensions.isValidUsername
+import com.apiguave.core_ui.components.*
 import com.apiguave.core_ui.components.dialogs.DeleteConfirmationDialog
 import com.apiguave.core_ui.components.dialogs.ErrorDialog
 import com.apiguave.core_ui.components.dialogs.SelectPictureDialog
+import com.apiguave.core_ui.theme.TinderCloneComposeTheme
 import com.apiguave.onboarding_ui.R
 import com.apiguave.onboarding_ui.components.dialogs.FormDatePickerDialog
-import com.apiguave.auth_ui.extensions.isValidUsername
-import com.apiguave.core_ui.components.FormTextField
-import com.apiguave.core_ui.components.HorizontalPicker
-import com.apiguave.core_ui.components.LoadingView
-import com.apiguave.core_ui.components.PictureGridRow
-import com.apiguave.core_ui.components.RowCount
-import com.apiguave.core_ui.components.SectionTitle
-import com.apiguave.core_ui.theme.TinderCloneComposeTheme
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -55,7 +48,9 @@ fun CreateProfileView(
     onOrientationIndexChanged: (Int) -> Unit,
 ) {
     val dateDialogState = rememberMaterialDialogState()
-    val isSignUpEnabled = remember(uiState) { derivedStateOf { uiState.name.text.isValidUsername() && uiState.pictures.size > 1 && uiState.genderIndex >= 0 && uiState.orientationIndex >= 0 } }
+    // Temporarily allow profile creation without pictures (for PDS testing)
+    // TODO: Change back to uiState.pictures.size > 1 when picture upload is implemented
+    val isSignUpEnabled = remember(uiState) { derivedStateOf { uiState.name.text.isValidUsername() && uiState.genderIndex >= 0 && uiState.orientationIndex >= 0 && uiState.pictures.size >= 1 } }
 
     FormDatePickerDialog(dateDialogState, date = uiState.birthDate, maxDate = uiState.maxBirthDate, onDateChange = onBirthDateChanged)
     

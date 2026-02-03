@@ -13,9 +13,9 @@ class AuthRepositoryImpl(
         get() = authRemoteDataSource.userId
 
     override suspend fun signIn(account: Account) {
-        val isNewAccount = authRemoteDataSource.isNewAccount(account.email)
-        if(isNewAccount) throw SignInException("User doesn't exist yet. Please sign up first.")
-        else authRemoteDataSource.signIn(account.email, account.password)
+        // Removed isNewAccount check - let the server handle invalid credentials
+        // AT Protocol doesn't support checking if account exists before signing in
+        authRemoteDataSource.signIn(account.email, account.password)
     }
 
     override suspend fun signUp(account: Account) {

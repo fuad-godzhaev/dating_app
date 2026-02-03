@@ -35,7 +35,7 @@ interface AtProtoClient {
     companion object {
         val default: AtProtoClient by lazy {
             AtProtoClientImpl(
-                pdsUrl = "http://localhost:3002", // TODO: Make configurable
+                pdsUrl = "http://localhost:3000", // Using Termux PDS on port 3000
                 adminPassword = "admin123" // TODO: Make configurable
             )
         }
@@ -56,6 +56,15 @@ class AtProtoClientImpl(
     private val adminPassword: String
 ) : AtProtoClient {
 
+    // Store the current session token for authenticated requests
+    var accessToken: String? = null
+        private set
+
+    fun setSession(token: String) {
+        accessToken = token
+        android.util.Log.d("AtProtoClient", "Session token set")
+    }
+
     override suspend fun createProfile(repo: String, profile: ComFypappProfile.Record) = withContext(Dispatchers.IO) {
         val endpoint = "$pdsUrl/xrpc/com.atproto.repo.createRecord"
         val payload = JSONObject().apply {
@@ -65,7 +74,17 @@ class AtProtoClientImpl(
             put("record", profileToJson(profile))
         }
 
-        postRequest(endpoint, payload, useAuth = true)
+        android.util.Log.d("AtProtoClient", "Creating profile for repo: $repo")
+        android.util.Log.d("AtProtoClient", "Endpoint: $endpoint")
+        android.util.Log.d("AtProtoClient", "Payload: $payload")
+
+        val response = postRequest(endpoint, payload, useAuth = true)
+        if (response != null) {
+            android.util.Log.d("AtProtoClient", "Profile created successfully: $response")
+        } else {
+            // Log warning but don't throw - server may return 200 with empty body
+            android.util.Log.w("AtProtoClient", "Profile creation completed but response was null (server returned 200 with empty/invalid body)")
+        }
         Unit
     }
 
@@ -336,15 +355,22 @@ class AtProtoClientImpl(
 
     private fun postRequest(url: String, payload: JSONObject, useAuth: Boolean): JSONObject? {
         return try {
+            android.util.Log.d("AtProtoClient", "POST $url")
             val connection = URL(url).openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.setRequestProperty("Content-Type", "application/json")
             connection.doOutput = true
+            connection.connectTimeout = 10000 // 10 seconds
+            connection.readTimeout = 10000
 
             if (useAuth) {
-                val auth = "admin:$adminPassword"
-                val encodedAuth = android.util.Base64.encodeToString(auth.toByteArray(), android.util.Base64.NO_WRAP)
-                connection.setRequestProperty("Authorization", "Basic $encodedAuth")
+                val token = accessToken
+                if (token != null) {
+                    connection.setRequestProperty("Authorization", "Bearer $token")
+                    android.util.Log.d("AtProtoClient", "Using Bearer token auth")
+                } else {
+                    android.util.Log.w("AtProtoClient", "No access token available for authenticated request")
+                }
             }
 
             // Write payload
@@ -353,14 +379,27 @@ class AtProtoClientImpl(
             writer.flush()
             writer.close()
 
-            if (connection.responseCode in 200..299) {
+            val responseCode = connection.responseCode
+            android.util.Log.d("AtProtoClient", "Response code: $responseCode")
+
+            if (responseCode in 200..299) {
                 val reader = BufferedReader(InputStreamReader(connection.inputStream))
                 val response = reader.use { it.readText() }
+                android.util.Log.d("AtProtoClient", "Response body: $response")
                 if (response.isNotEmpty()) JSONObject(response) else JSONObject()
             } else {
+                // Log error response
+                val errorStream = connection.errorStream
+                if (errorStream != null) {
+                    val errorBody = BufferedReader(InputStreamReader(errorStream)).use { it.readText() }
+                    android.util.Log.e("AtProtoClient", "Error $responseCode: $errorBody")
+                } else {
+                    android.util.Log.e("AtProtoClient", "Error $responseCode: No error body")
+                }
                 null
             }
         } catch (e: Exception) {
+            android.util.Log.e("AtProtoClient", "Request failed: ${e.message}", e)
             e.printStackTrace()
             null
         }

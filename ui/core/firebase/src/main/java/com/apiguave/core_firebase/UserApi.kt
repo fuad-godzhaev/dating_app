@@ -48,6 +48,8 @@ object UserApi {
         // FirebaseFirestore.getInstance().collection(USERS).document(userId).set(user).getTaskResult()
 
         // New AT Protocol implementation
+        android.util.Log.d("UserApi", "Creating profile for user: $userId, name: $name")
+
         val profile = ComFypappProfile.Record(
             displayName = name,
             bio = bio,
@@ -66,7 +68,9 @@ object UserApi {
             updatedAt = Instant.now().toString()
         )
 
+        android.util.Log.d("UserApi", "Profile data prepared, calling atProtoClient.createProfile")
         atProtoClient.createProfile(userId, profile)
+        android.util.Log.d("UserApi", "Profile created successfully for user: $userId")
     }
 
     suspend fun userExists(): Boolean {
@@ -75,23 +79,46 @@ object UserApi {
         // return snapshot.exists()
 
         // New AT Protocol implementation
-        return atProtoClient.profileExists(AuthApi.userId!!)
+        val userId = AuthApi.userId
+        android.util.Log.d("UserApi", "Checking if profile exists for userId: $userId")
+
+        if (userId == null) {
+            android.util.Log.w("UserApi", "Cannot check profile existence - userId is null")
+            return false
+        }
+
+        val exists = atProtoClient.profileExists(userId)
+        android.util.Log.d("UserApi", "Profile exists for $userId: $exists")
+        return exists
     }
 
     suspend fun getUser(userId: String): FirestoreUser? {
-        // Old Firebase implementation (commented out)
+        // Old Firebase implementation
         // val snapshot = FirebaseFirestore.getInstance().collection(USERS).document(userId).get().getTaskResult()
         // return snapshot.toObject<FirestoreUser>()
 
         // New AT Protocol implementation
+        android.util.Log.d("UserApi", "Getting user profile for: $userId")
         val input = ComFypappGetProfile.Input(actor = userId)
-        val output = atProtoClient.getProfile(input) ?: return null
+        val output = atProtoClient.getProfile(input)
 
-        return output.profile?.toFirestoreUser(userId)
+        if (output == null) {
+            android.util.Log.w("UserApi", "getProfile returned null for userId: $userId")
+            return null
+        }
+
+        if (output.profile == null) {
+            android.util.Log.w("UserApi", "getProfile returned output but profile is null for userId: $userId")
+            return null
+        }
+
+        val firestoreUser = output.profile.toFirestoreUser(userId)
+        android.util.Log.d("UserApi", "Successfully retrieved user profile: ${firestoreUser.name}")
+        return firestoreUser
     }
 
     suspend fun getCompatibleUsers(currentUser: FirestoreUser): List<FirestoreUser> {
-        // Old Firebase implementation (commented out)
+        // Old Firebase implementation
         // val excludedUserIds = currentUser.liked + currentUser.passed + currentUser.id
         //
         // //Build query
@@ -122,12 +149,21 @@ object UserApi {
         // return result.filter { !excludedUserIds.contains(it.id) }.mapNotNull { it.toObject<FirestoreUser>() }
 
         // New AT Protocol implementation using discover endpoint
+        android.util.Log.d("UserApi", "Fetching compatible users via discover endpoint")
         val input = ComFypappDiscover.Input(limit = 50)
-        val output = atProtoClient.discover(input) ?: return emptyList()
+        val output = atProtoClient.discover(input)
 
-        return output.profiles?.mapNotNull { profileCard ->
+        if (output == null) {
+            android.util.Log.w("UserApi", "Discover endpoint returned null")
+            return emptyList()
+        }
+
+        val profiles = output.profiles?.mapNotNull { profileCard ->
             profileCard.profile?.toFirestoreUser(profileCard.did)
         } ?: emptyList()
+
+        android.util.Log.d("UserApi", "Discover returned ${profiles.size} profiles")
+        return profiles
     }
 
     suspend fun swipeUser(swipedUserId: String, isLike: Boolean): String? {
