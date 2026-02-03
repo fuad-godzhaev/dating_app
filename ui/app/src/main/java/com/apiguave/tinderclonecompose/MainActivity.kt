@@ -1,6 +1,7 @@
 package com.apiguave.tinderclonecompose
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.apiguave.tinderclonecompose.navigation.NavigationGraph
@@ -13,6 +14,17 @@ import org.koin.dsl.module
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Set up global exception handler for Compose hover event bug
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            if (throwable.message?.contains("ACTION_HOVER_EXIT") == true) {
+                Log.w("MainActivity", "Caught Compose hover event bug, ignoring: ${throwable.message}")
+            } else {
+                // Re-throw if it's a different error
+                Thread.getDefaultUncaughtExceptionHandler()?.uncaughtException(thread, throwable)
+            }
+        }
+
         val activityModule = module {
             single<GoogleSignInClient> {
                 val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)

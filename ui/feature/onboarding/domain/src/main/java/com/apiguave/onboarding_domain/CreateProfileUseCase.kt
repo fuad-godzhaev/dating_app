@@ -25,8 +25,23 @@ class CreateProfileUseCase(
         return Result.runCatching {
             val userId = authRepository.userId
             profileRepository.addProfile(userId!!, name, birthdate, bio, gender, orientation)
-            val pictureNames = pictureRepository.addPictures(pictures)
-            profileRepository.updatePictures(pictureNames)
+
+            // Try to upload pictures, but don't fail profile creation if it fails
+            // (Firebase Storage not available in AT Protocol backend)
+            try {
+                if (pictures.size >= 1) {
+                    val pictureNames = pictureRepository.addPictures(pictures)
+                    profileRepository.updatePictures(pictureNames)
+                } else {
+                    // No pictures to upload
+                    profileRepository.updatePictures(emptyList())
+                }
+            } catch (e: Exception) {
+                // Log picture upload failure but continue with profile creation
+                //android.util.Log.w("CreateProfileUseCase", "Picture upload failed (Firebase not configured): ${e.message}")
+                // Update profile with empty pictures for now
+                profileRepository.updatePictures(emptyList())
+            }
         }
     }
 }
