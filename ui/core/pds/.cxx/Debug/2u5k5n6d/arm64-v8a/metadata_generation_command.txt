@@ -8,7 +8,7 @@
 -DANDROID_NDK=C:\Users\wirex\AppData\Local\Android\Sdk\ndk\26.1.10909125
 -DCMAKE_ANDROID_NDK=C:\Users\wirex\AppData\Local\Android\Sdk\ndk\26.1.10909125
 -DCMAKE_TOOLCHAIN_FILE=C:\Users\wirex\AppData\Local\Android\Sdk\ndk\26.1.10909125\build\cmake\android.toolchain.cmake
--DCMAKE_MAKE_PROGRAM=D:\Ninja\ninja.exe
+-DCMAKE_MAKE_PROGRAM=C:\Users\wirex\AppData\Local\Android\Sdk\cmake\4.1.2\bin\ninja.exe
 -DCMAKE_CXX_FLAGS=-std=c++17
 -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=C:\Users\wirex\Desktop\FYP_GIT\dating_app\ui\core\pds\build\intermediates\cxx\Debug\2u5k5n6d\obj\arm64-v8a
 -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=C:\Users\wirex\Desktop\FYP_GIT\dating_app\ui\core\pds\build\intermediates\cxx\Debug\2u5k5n6d\obj\arm64-v8a

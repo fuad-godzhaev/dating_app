@@ -88,6 +88,9 @@ dependencies {
 
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    val roomVersion = "2.8.4"
+    implementation("androidx.room:room-runtime:${roomVersion}")
+
     implementation(project(":core:ui"))
     implementation(project(":feature:onboarding:ui"))
     implementation(project(":feature:onboarding:domain"))

@@ -39,3 +39,4 @@ include ':core:profile:domain'
 include ':feature:onboarding:domain'
 
 include 'core:pds'
+include 'core:data'

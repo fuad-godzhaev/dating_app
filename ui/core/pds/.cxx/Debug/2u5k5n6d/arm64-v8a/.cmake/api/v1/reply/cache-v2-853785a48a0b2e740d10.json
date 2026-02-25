@@ -735,7 +735,7 @@
 				}
 			],
 			"type" : "UNINITIALIZED",
-			"value" : "D:\\Ninja\\ninja.exe"
+			"value" : "C:\\Users\\wirex\\AppData\\Local\\Android\\Sdk\\cmake\\4.1.2\\bin\\ninja.exe"
 		},
 		{
 			"name" : "CMAKE_MODULE_LINKER_FLAGS",

@@ -46,7 +46,7 @@ class ProfileRepositoryImpl(
     private suspend fun getCurrentUser(): FirestoreUser {
         return currentUser ?: run {
             val userId = AuthApi.userId ?: throw IllegalStateException("User not authenticated")
-            val user = UserApi.sgetUser(userId)
+            val user = UserApi.getUser(userId)
                 ?: throw IllegalStateException("Profile not found for user: $userId")
             currentUser = user
             user

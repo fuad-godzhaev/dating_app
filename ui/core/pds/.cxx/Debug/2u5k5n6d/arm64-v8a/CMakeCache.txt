@@ -130,7 +130,7 @@ CMAKE_LIBRARY_OUTPUT_DIRECTORY:UNINITIALIZED=C:\Users\wirex\Desktop\FYP_GIT\dati
 CMAKE_LINKER:FILEPATH=C:/Users/wirex/AppData/Local/Android/Sdk/ndk/26.1.10909125/toolchains/llvm/prebuilt/windows-x86_64/bin/ld.lld.exe
 
 //No help, variable specified on the command line.
-CMAKE_MAKE_PROGRAM:UNINITIALIZED=D:\Ninja\ninja.exe
+CMAKE_MAKE_PROGRAM:UNINITIALIZED=C:\Users\wirex\AppData\Local\Android\Sdk\cmake\4.1.2\bin\ninja.exe
 
 //Flags used by the linker during the creation of modules.
 CMAKE_MODULE_LINKER_FLAGS:STRING=
