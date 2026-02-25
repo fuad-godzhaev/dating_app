@@ -48,3 +48,12 @@ in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and r
 ---
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+
+
+### Folder structure
+-Database -> commonApp\src\commonMain\kotlin\fyp\project\datingapp
+-Lexicons -> composeApp\src\commonMain\lexicons
+-Personal Data Server -> TBA
+-Network -> TBA
+-Features -> TBA
+-UI -> TBA
