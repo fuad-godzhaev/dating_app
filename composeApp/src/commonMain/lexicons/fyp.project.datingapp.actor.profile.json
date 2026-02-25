@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "fyp.project.datingapp.actor.profile",
+    "defs": {
+      "main": {
+        "type": "record",
+        "key": "literal:self",
+        "record": {
+          "type": "object",
+          "required": ["displayName", "createdAt"],
+          "properties": {
+            "displayName": {"type": "string", "maxGraphemes": 64, "maxLength": 640},
+            "bio": {"type": "string", "maxGraphemes": 500, "maxLength": 5000},
+            "age": {"type": "integer", "minimum": 18, "maximum": 120},
+            "interests": {"type": "array", "items": {"type": "string"}, "maxLength": 20},
+            "avatar": {"type": "blob", "accept": ["image/jpeg", "image/png"], "maxSize": 5000000},
+            "photos": {"type": "array", "items": {"type": "blob", "accept": ["image/jpeg", "image/png"], "maxSize": 5000000}, "maxLength": 10},
+            "location": {"type": "ref", "ref": "#geoLocation"},
+            "createdAt": {"type": "string", "format": "datetime"}
+            }
+          }
+        },
+        "geoLocation": {
+          "type": "object",
+          "properties": {
+            "latitude": {"type": "integer"},
+            "longitude": {"type": "integer"},
+            "city": {"type": "string"}
+          }
+        }
+    }
+}
