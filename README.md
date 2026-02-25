@@ -100,9 +100,9 @@ C)	Appendix C: Prompts Used with ChatGPT	C-1
 D)	Appendix D: Additional Code Samples	D-1
 E)	Appendix E:	E-1
 
-1. Introduction
+       1. Introduction
 
-1.1 Project Background
+### 1.1 Project Background
 
 Under the blanket term “social network” there are lots of distinct platforms, each gathering and handling different data about its users. For this project, I’ve settled on a dating app for several reasons: the vast amounts of sensitive personal information it gathers, the relatively small amount of storage required per user, and the distinct ways users find and interact with each other within the app.
 In April 2024, the Mozilla Foundation's "Privacy Not Included" research team evaluated 25 popular dating apps and concluded that 22 of them (88%) warranted privacy warnings—the worst results since the organisation began its evaluations in 2021 [1]. The authors noted that dating apps had "gotten worse for privacy" and that these platforms "just can't get enough of your data". This finding does not represent an isolated incident but rather a systemic pattern within an industry that has grown to serve over 350 million users globally, valued at between $6 billion and $9 billion annually [2]. From Grindr sharing users' HIV status with third-party analytics firms without explicit consent in 2018 [3], to the catastrophic Ashley Madison breach that exposed 37 million users in 2015 with two confirmed suicides linked to the exposure [4] [5], to ongoing concerns about intimate behavioural data being sold to brokers potentially accessible by government agencies without warrants [6], the dating app industry has demonstrated a persistent lack of protection of the sensitive information entrusted to it.
@@ -113,7 +113,7 @@ These existing solutions represent both the promising innovations and the challe
 At the same time, the technical landscape has evolved in ways to make mobile P2P architectures more viable. IPv6 adoption on mobile networks has reached 87% among major US carriers and 50-70% globally, which will eliminate Network Address Translation (NAT) barriers once it reaches 100% [13]. Modern NAT traversal techniques can help in the meantime, with STUN, TURN, and ICE protocols achieving connection success rates of over 95% when properly implemented [14]. The Signal Protocol has proven that end-to-end encryption can operate at a billion-user scale without compromising user experience [15]. Perhaps most significantly, the average smartphone now has computational capabilities that exceed the servers that powered early internet infrastructure, thus potentially allowing users’ devices to become their own Personal Data Servers (PDS), eliminating the need for centralised infrastructure entirely.
 In summary, users' growing demand for privacy, the technical evolution of P2P protocols and broad dissatisfaction with existing dating platforms create a window of opportunity to explore whether a fundamentally different architecture is achievable and viable. The question this project aims to answer is whether decentralised, privacy-preserving dating apps are technically feasible, which could represent a template for a new type of social software, returning control to users and lowering barriers for developers who wish to create community-focused platforms without the ever-growing capital requirements.
 
-1.2 Project Description
+### 1.2 Project Description
 
 This project develops a proof-of-concept Android app demonstrating that a fully functional dating platform can operate without centralised server infrastructure. The core technology treats each user’s smartphone as a PDS: a device that stores its owner’s profile, handles cryptographic identity, participates in distributed discovery, and works with other devices to relay messages for offline users. Rather than uploading personal information to a third-party server, users retain ownership of their data while still enabling the discovery based on matching algorithms expected from modern dating apps.
 The app uses multiple existing technologies to address challenges of discovery, asynchronous message delivery, and NAT restrictions:
@@ -123,7 +123,7 @@ NAT Restrictions: One of the IPv6 design goals is to restore end-to-end network 
 Identity within the system will be self-sovereign, implemented using Decentralised Identifiers (DIDs) following the did:key specification. Upon first launch, the app generates an Ed25519 cryptographic key pair, derives a DID from the public key, and stores the private key in the device's hardware-backed secure enclave. This identity requires no registration with any authority—users cryptographically prove ownership of their identity through digital signatures, and can recover their identity using a seed phrase if they change devices. 
 The project focuses on demonstrating technical feasibility rather than producing a commercially deployable app. The scope is limited to Android devices, dating functionality only (excluding friendship and networking modes), simple preference-based filtering (excluding machine learning-based matching algorithms), and text messaging (excluding video calling). These constraints enable me, as a single developer, to deliver a functional proof of concept within an academic year while still validating the core architectural idea.
 
-        1.3 Project Aims and Objectives
+### 1.3 Project Aims and Objectives
 
 Overall aim:  Research the technical and practical feasibility of decentralised peer-to-peer social networking on mobile devices.
 Objectives:
@@ -136,7 +136,7 @@ Objectives:
     • Create a working prototype demonstrating core P2P functionality
     • Evaluate the system with a small group of volunteer users
 
-1.4  Project Scope
+### 1.4  Project Scope
 
 The project’s scope is defined by its focus on enhancing privacy, users’ control over data, and the ease of development of community-focused social apps.
 In Scope:
@@ -161,18 +161,18 @@ To be added...
             1.4.5 System Prototype
             1.4.6 Issues and Future Work
 
-2. Literature Review
+    2. Literature Review
 
-2.1 Introduction
+### 2.1 Introduction
 
 In this chapter I examine existing research and solutions relevant to building decentralised P2P platforms. The review covers four main areas of the project: alternative decentralised social networking solutions that have attempted similar architectural approaches; the technologies required for implementation including P2P networking, cryptographic protocols and mobile networking constraints; domain-specific research on dating apps requirements and privacy concerns; and existing final years project that have researched related themes. 
 The goal is to find out what these works have achieved, what seemed to cause troubles, what mistakes to avoid, and to justify technological and design choices for this project.
 
-2.2 Alternative Existing Solutions
+### 2.2 Alternative Existing Solutions
 
 Structured in the order of relevance to this project:
 
-2.2.1 Pinecone - Matrix P2P
+### 2.2.1 Pinecone - Matrix P2P
 
 Pinecone is an experimental fork of the decentralised messaging platform Matrix, which is known for it’s strong security and privacy features. The idea behind the experiment was to embed the distributed node functionality in the client app, thus allowing the users’ device to act as a host and a relay, allowing for true P2P and distributed functionality without the need for third-party relays. As per the developer’s note “Pinecone peering connections look like regular TCP or WebSocket connections and will work fine through firewalls or NATs”. This tunneling technique might become quite useful in case other tecniques fail. 
 [TODO: Visual graph showcasing the architecture]
@@ -188,7 +188,7 @@ Limitations:
 Relevance to This Project: Embedded server-in-client architecture; Multi-transport support; Node mobility handling; Hybrid topology approach; 
 [TODO: Expand this section]
 
-2.2.2 Briar Project
+### 2.2.2 Briar Project
 
 Briar is a contact-based peer-to-peer messenger designed for users requiring strong privacy guarantees against adversaries capable of detailed traffic monitoring [[16]]. The architecture implements three transport mechanisms for different use-cases: Tor hidden services for anonymous internet connectivity, Bluetooth for direct short-range communication and WiFi Direct for local high-bandwith transfers.
 Key Technical Features:
@@ -203,7 +203,7 @@ Limitations:
     • Requires both parties online simultaneously without Mailbox 
 Relevance to This Project: Briar demonstrates that secure P2P mobile communication is achievable but highlights the critical importance of battery optimisation and the need for asynchronous messaging mechanisms. The contact-only limitation confirms that dating applications require fundamentally different discovery architecture.
 
-2.2.3 Bluesky (AT Protocol)
+### 2.2.3 Bluesky (AT Protocol)
 
 The AT Protocol, developed by Bluesky Social PBC, implements a relay-based federated architecture that has achieved significant mainstream adoption—growing from 10 million users in September 2024 to over 27 million by January 2025 [][].
 Architecture Components:
@@ -225,7 +225,7 @@ Centralisation Tensions:
 Relevance to This Project: AT Protocol demonstrates that "usable decentralised social media" can achieve mainstream adoption through a "no steps backwards" design philosophy—maintaining centralised platform convenience while enabling decentralisation []. The project adopts this hybrid philosophy but pushes further toward true P2P by eliminating relay dependency for messaging while potentially accepting some centralisation for discovery optimisation.
 
 
-2.2.4 Mastodon (ActivityPub)
+### 2.2.4 Mastodon (ActivityPub)
 
 Mastodon implements the W3C ActivityPub protocol (January 2018) through server-to-server federation [].
 Key Limitations:
@@ -236,12 +236,12 @@ Key Limitations:
     • Monthly active users peaked at 2.5M (November 2022), currently ~2.5M after significant churn [] 
 Relevance to This Project: ActivityPub's federation complexity demonstrates that technical decentralisation alone is insufficient—user experience must remain simple to achieve adoption. The project prioritises hiding technical complexity behind familiar dating app interfaces.
 
-2.2.5 Solid
+### 2.2.5 Solid
 
 Hello template text for Solid (Sir Tim Berners Lee)
 
 
-2.2.6 Secure Scuttlebutt
+### 2.2.6 Secure Scuttlebutt
 
 Scuttlebutt implements an offline-first, gossip-based social protocol where each user maintains an append-only log of cryptographically signed messages []. The network topology mirrors the social graph—data replicates along trust relationships using the Epidemic Broadcast Tree protocol [].
 Technical Architecture:
@@ -261,7 +261,7 @@ Pub Server Centralisation:
 Relevance to This Project: SSB's cryptographic identity model and append-only logs provide valuable architectural patterns. However, the unbounded storage growth and gossip inefficiency demonstrate why pure gossip protocols cannot scale to dating application requirements. The project will adopt SSB's identity principles while implementing bounded retention policies and more efficient synchronisation.
 
 
-2.3 Technologies Researched
+### 2.3 Technologies Researched
 
 ATProto/PDS
 ActivityPub
@@ -280,7 +280,7 @@ Terminux
 
 
 
-2.4 Other Research
+### 2.4 Other Research
 
 I2P
 
@@ -295,11 +295,11 @@ What technical architecture was used? A microservice architecture was employed, 
 While the idea of adding a mandatory KYC process does help resolving issues like bad actors creating bot networks to gather user’s personal data, possible impersonations and a wide spread of hateful speech and online bullying, it does not solve these issues completely, because no such systems are 100% correct, especially nowadays with a widespread of AI and the ease it bring in creating “deepfakes”, but it is definitely a step in the right direction, and making KYC mandatory works well with an idea of a dating app, where everyone is supposed to, and expects, to see real humans sharing their real photos, names and information. On the other hand, I did not see sufficient precautions being taken to prevent users’ personal data from being used maliciously after the identification process was completed, which creates potential security risks and may undermine users’ trust.
 
 
-2.6 Conclusions
+### 2.6 Conclusions
 
 To be added….
 
-3. System Analysis
+    3. System Analysis
 
 3.1 System Overview  
 The goal is to make the app as simple as possible from user’s perspective. One of the main reasons why audiences abandon decentralised platforms is complexity in first-time set-up and usage. From a user perspective, the app will appear as a standard dating app: users create profiles with photos and descriptions of themselves, then filter their matches based on interests and location, swipe left or right to indicate interest and exchange messages with mutual matches. The decentralised architecture must remain invisible to the user, with exception of them getting a message at the first-launch, asking for their consent on using a small percentage of their device’s compute power with explanation as to why the app needs it.
@@ -311,16 +311,17 @@ User journey:
     5) Privacy Control: User can delete their profile, thus removing it from their own device and the DHT; cached copies expire over time.
 [TODO: Use-case diagram]
  
-3.2 Requirements Gathering
-3.2.1 Stakeholder Analysis
+### 3.2 Requirements Gathering
+
+### 3.2.1 Stakeholder Analysis
 Identify and consider key stakeholders
 Describe how to collect requirements
 Collect initial requirements
 
-3.3 Requirements Analysis
+### 3.3 Requirements Analysis
 Develop an initial systems model through analysis of requirements
 
-3.4 Initial System Specification
+### 3.4 Initial System Specification
 
 Functional Requirements:
     • System must generate DID identity without external authority
@@ -344,99 +345,100 @@ Non-Functional Requirements:
     • DHT query response time: Target is <5 seconds
 Identify an appropriate architecture for the system
 
-3.5 Conclusions
+### 3.5 Conclusions
 To be added...
 
-4. System Design 
+    4. System Design 
 
-4.1 Introduction
+### 4.1 Introduction
 
 Brief description of approach to turn requirements or specification into design
 
-4.2 Software Methodology
+### 4.2 Software Methodology
 
 Identify an appropriate methodology to develop the system 
 
-4.3 Overview of System 
+### 4.3 Overview of System 
 
 Describe the logical Architecture and initial physical infrastructure
 Consider and briefly the system deployment or production environment
 
-4.4 Design System 
+### 4.4 Design System 
 
 Use design methodology to create design
 
-4.X Other Section
+### 4.X Other Section
 
 
-4.X Conclusions
+### 4.X Conclusions
 
 
 
 
-5. Testing and Evaluation
+    5. Testing and Evaluation
 
-5.1 Introduction
+### 5.1 Introduction
 
 Describe testing and evaluation approaches appropriate to the parts of the system (Logical Architecture)
 
-5.2 Plan for Testing
+### 5.2 Plan for Testing
 
 Identify the approach for testing each part of the system
 Provide test plan in structured manner
 
-5.3 Plan for Evaluation
+### 5.3 Plan for Evaluation
 Identify evaluation methodology for each part of the system
 
-5.4 Conclusions
+### 5.4 Conclusions
 
 
 
-6. System Prototype 
+    6. System Prototype 
 
 As least 2 pages, but as many as you like (with lots of code samples).
 
-6.1 Introduction
+### 6.1 Introduction
 
 Outline of approach to developing the prototype
 Identify frameworks used for any part of the system
 
-6.2 Prototype Development
+### 6.2 Prototype Development
 
 Develop Code for each part of system (Logical Architecture)
 
 
-6.3 Results
+### 6.3 Results
 
 Perform tests identified in section 5
 
-6.4 Evaluation 
+### 6.4 Evaluation 
 
 Evaluate results 
 Use evaluation approaches from Section 5 to assess the outcomes of the development
 
-6.5 Conclusions
+### 6.5 Conclusions
 
 
-7. Issues and Future Work
+    7. Issues and Future Work
 
-7.1 Introduction
+### 7.1 Introduction
 Purpose of the section
 
-7.2 Issues and Risks
+#### 7.2 Issues and Risks
 Describe aspects of the project that had different outcomes to the expected outcomes, based on evaluation of results
 Identify key elements of uncertainty that will lead to risks in completing the project
 
-7.3 Plans and Future Work
+### 7.3 Plans and Future Work
 ##Consider and briefly describe how to address any risks and how to complete the system 
 ##Consider and describe how to complete the system based on the available time
 ## PGM - Pragmatic General Multicast; Minimal UI/FRONT END work; 
 
-7.3.1 Project Plan with GANTT Chart
+### 7.3.1 Project Plan with GANTT Chart
 Based on the future plans, describe how to complete the project
 Break down the plan into a detailed yet realistic schedule.
 Present a Gantt chart to summarise the project plan
-References
+
+    References
 
     A) [1]	‘*Privacy Not Included: A Buyer’s Guide for Connected Products’, Mozilla Foundation. Accessed: Jan. 12, 2026. [Online]. Available: https://www.mozillafoundation.org/en/privacynotincluded/articles/data-hungry-dating-apps-are-worse-than-ever-for-your-privacy/
     B) [2]	‘Dating App Revenue and Usage Statistics (2026)’, Business of Apps. Accessed: Jan. 14, 2026. [Online]. Available: https://www.businessofapps.com/data/dating-app-market/
