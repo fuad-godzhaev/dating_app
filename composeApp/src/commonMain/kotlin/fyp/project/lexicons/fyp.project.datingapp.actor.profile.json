@@ -1,6 +1,7 @@
 {
   "lexicon": 1,
   "id": "fyp.project.datingapp.actor.profile",
+  "description": "A user's dating profile. Each user has exactly one profile record (key: 'self').",
     "defs": {
       "main": {
         "type": "record",
@@ -15,16 +16,16 @@
             "interests": {"type": "array", "items": {"type": "string"}, "maxLength": 20},
             "avatar": {"type": "blob", "accept": ["image/jpeg", "image/png"], "maxSize": 5000000},
             "photos": {"type": "array", "items": {"type": "blob", "accept": ["image/jpeg", "image/png"], "maxSize": 5000000}, "maxLength": 10},
-            "location": {"type": "ref", "ref": "#geoLocation"},
-            "createdAt": {"type": "string", "format": "datetime"}
-            }
+            "createdAt": {"type": "string", "format": "datetime"},
+            "location": {"type": "ref", "ref": "#geoLocation"}
+          }
           }
         },
         "geoLocation": {
           "type": "object",
           "properties": {
-            "latitude": {"type": "integer"},
-            "longitude": {"type": "integer"},
+            "latitude": {"type": "number"},
+            "longitude": {"type": "number"},
             "city": {"type": "string"}
           }
         }
