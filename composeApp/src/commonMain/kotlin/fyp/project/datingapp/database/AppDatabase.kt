@@ -1,4 +1,4 @@
-package fyp.project.datingapp
+package fyp.project.datingapp.database
 
 import androidx.room.ConstructedBy
 import androidx.room.Database
@@ -8,14 +8,21 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 
-@Database(entities = [RecordEntity::class], version = 1)
+@Database(
+    entities = [RecordEntity::class, CommitEntity::class, BlobEntity::class],
+    version = 1,
+    exportSchema = true
+)
 @ConstructedBy(AppDatabaseConstructor::class)
 
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun getDao(): TodoDao
+    abstract fun recordDao(): RecordDao
+    abstract fun commitDao(): CommitDao
+    abstract fun blobDao(): BlobDao
+    abstract fun profileDao(): ProfileDao
+    //TODO: abstract fun graphDao(): GraphDao
 }
 
-// The Room compiler generates the `actual` implementations.
 @Suppress("KotlinNoActualForExpect")
 expect object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
     override fun initialize(): AppDatabase

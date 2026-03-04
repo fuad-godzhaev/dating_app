@@ -2,6 +2,7 @@ package fyp.project.datingapp
 
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import fyp.project.datingapp.database.AppDatabase
 import java.io.File
 
 fun getDatabaseBuilder(): RoomDatabase.Builder<AppDatabase> {

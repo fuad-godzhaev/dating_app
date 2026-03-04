@@ -9,7 +9,7 @@ sealed class DataValidatorResult {
     data class Invalid(val errors: List<String>) : DataValidatorResult()
 }
 
-object LexiconValidator {
+object DataValidator {
     fun validate(record: Any): DataValidatorResult {
         return when (record) {
             is UserProfile -> validateProfile(record)

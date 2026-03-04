@@ -2,6 +2,7 @@ package fyp.project.datingapp
 
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import fyp.project.datingapp.database.AppDatabase
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
