@@ -8,7 +8,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.datetime.*
 import kotlin.time.Instant
 import kotlin.time.Clock
+import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid.Companion.random
+
+//TODO: Alternatives to experimental API's used (if any)
 
 //TODO: Split the logic into separate services
 class RepositoryManager(
@@ -96,20 +99,19 @@ class RepositoryManager(
     //-----Utility Functions-----
     // TODO: Replace with real CIDv1
     private fun computeCid(data: ByteArray): String {
-        val digest = kotlinx.MessageDigest.getInstance("SHA-256")
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
         val hash = digest.digest(data)
         return "sha256:${hash.joinToString("") { "%02x".format(it) }}"
     }
-
+    // TODO: Replace with proper base32-sort encoding per ATProto spec
+    @OptIn(ExperimentalUuidApi::class)
     private fun generateTid(): String {
-        val timestamp = Clock.System.currentTimeMillis() * 1000 // microseconds
+        val timestamp = Clock.System.now().toEpochMilliseconds() * 1000 // microseconds
         val clockId = (random() * 1024).toInt()
         val combined = (timestamp shl 10) or clockId.toLong()
 
         // Encode as base36
         return combined.toString(32).padStart(13, '0').takeLast(13)
-
-        // TODO: Replace with proper base32-sort encoding per ATProto spec
     }
 
     //TODO: make sure TID's always increment and are not reused or duplicated with the same collection in a given repo
