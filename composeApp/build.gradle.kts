@@ -9,7 +9,7 @@ plugins {
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.20-RC2"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.20-RC2" //TODO: alias?
 }
 
 kotlin {
@@ -48,6 +48,7 @@ kotlin {
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.kotlinx.serialization.json)
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

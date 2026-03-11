@@ -5,7 +5,10 @@ import fyp.project.datingapp.DataValidatorResult
 import fyp.project.datingapp.records.UserProfile
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlin.time.TimeSource
+import kotlinx.datetime.*
+import kotlin.time.Instant
+import kotlin.time.Clock
+import kotlin.uuid.Uuid.Companion.random
 
 //TODO: Split the logic into separate services
 class RepositoryManager(
@@ -29,6 +32,7 @@ class RepositoryManager(
         const val MESSAGE = "fyp.project.datingapp.records.message"
     }
 
+    //Create or update User Profile
     suspend fun putProfile(profile: UserProfile): Result<Unit> {
         // Step 1: Validate against Lexicon schema
         val validation = DataValidator.validate(profile)
@@ -48,12 +52,13 @@ class RepositoryManager(
         // TODO: Production: CIDv1 with dag-cbor codec and sha2-256 multihash.
         val cid = computeCid(recordBytes)
 
+        // Step 4: Store the record
         val entity = RecordEntity(
             collection = Collections.PROFILE,
             rkey = "self",
             cborBytes = recordBytes,
             cid = cid,
-            createdAt = TimeSource.Monotonic.markNow()
+            createdAt = ZonedDateTime.now()
         )
         db.recordDao().upsertRecord(entity)
 
@@ -91,24 +96,26 @@ class RepositoryManager(
     //-----Utility Functions-----
     // TODO: Replace with real CIDv1
     private fun computeCid(data: ByteArray): String {
-        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        val digest = kotlinx.MessageDigest.getInstance("SHA-256")
         val hash = digest.digest(data)
         return "sha256:${hash.joinToString("") { "%02x".format(it) }}"
     }
 
     private fun generateTid(): String {
         val timestamp = Clock.System.currentTimeMillis() * 1000 // microseconds
-        val clockId = (Math.random() * 1024).toInt()
+        val clockId = (random() * 1024).toInt()
         val combined = (timestamp shl 10) or clockId.toLong()
 
-        // Encode as base32-sort (simplified: use base36 for PoC)
-        return combined.toString(36).padStart(13, '0').takeLast(13)
+        // Encode as base36
+        return combined.toString(32).padStart(13, '0').takeLast(13)
 
         // TODO: Replace with proper base32-sort encoding per ATProto spec
     }
 
-    private fun nowIso8601(): String {
-        return java.time.Instant.now().toString()
+    //TODO: make sure TID's always increment and are not reused or duplicated with the same collection in a given repo
+    private fun timeZoneNow(): LocalDateTime {
+        val now: LocalDateTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        return now
     }
 
     class DataValidatorException(message: String) : Exception(message)
