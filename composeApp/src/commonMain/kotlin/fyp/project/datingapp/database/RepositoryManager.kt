@@ -99,8 +99,7 @@ class RepositoryManager(
     //-----Utility Functions-----
     // TODO: Replace with real CIDv1
     private fun computeCid(data: ByteArray): String {
-        val digest = java.security.MessageDigest.getInstance("SHA-256")
-        val hash = digest.digest(data)
+        val hash = sha256Digest(data)
         return "sha256:${hash.joinToString("") { "%02x".format(it) }}"
     }
     // TODO: Replace with proper base32-sort encoding per ATProto spec
