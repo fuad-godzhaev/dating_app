@@ -6,8 +6,8 @@ import fyp.project.datingapp.records.UserProfile
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.datetime.*
-import kotlin.time.Instant
 import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid.Companion.random
 
@@ -61,7 +61,7 @@ class RepositoryManager(
             rkey = "self",
             cborBytes = recordBytes,
             cid = cid,
-            createdAt = ZonedDateTime.now()
+            createdAt = timeZoneNow().toEpochMilliseconds()
         )
         db.recordDao().upsertRecord(entity)
 
@@ -106,7 +106,7 @@ class RepositoryManager(
     // TODO: Replace with proper base32-sort encoding per ATProto spec
     @OptIn(ExperimentalUuidApi::class)
     private fun generateTid(): String {
-        val timestamp = Clock.System.now().toEpochMilliseconds() * 1000 // microseconds
+        val timestamp = timeZoneNow().toEpochMilliseconds() * 1000 // microseconds
         val clockId = (random() * 1024).toInt()
         val combined = (timestamp shl 10) or clockId.toLong()
 
@@ -115,8 +115,9 @@ class RepositoryManager(
     }
 
     //TODO: make sure TID's always increment and are not reused or duplicated with the same collection in a given repo
-    private fun timeZoneNow(): LocalDateTime {
-        val now: LocalDateTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    private fun timeZoneNow(): Instant {
+        //val now: LocalDateTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val now: Instant = Clock.System.now()
         return now
     }
 
