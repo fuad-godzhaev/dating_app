@@ -8,7 +8,7 @@ data class UserProfile(
     @SerialName($$"$type")
     val type: String = "fyp.project.datingapp.records.profile",
 
-    //val did: String,
+    val did: String,
     val displayName: String,
     val bio: String,
     val age: Int,
@@ -16,7 +16,10 @@ data class UserProfile(
     val avatar: BlobRef? = null,
     val photos: List<BlobRef>? = null,
 
+    val signingKey: ByteArray, // public key for repo verification
+    val signalPreKeyBundle: ByteArray,
+
     val interests: List<String>,
-    val location: GeoLocation? = null,
+    val location: Geolocation? = null,
     val createdAt: String,
 )

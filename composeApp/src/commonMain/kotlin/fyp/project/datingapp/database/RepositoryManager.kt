@@ -3,20 +3,18 @@ package fyp.project.datingapp.database
 import fyp.project.datingapp.DataValidator
 import fyp.project.datingapp.DataValidatorResult
 import fyp.project.datingapp.records.UserProfile
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.datetime.*
+import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid.Companion.random
 
 //TODO: Alternatives to experimental API's used (if any)
 
 //TODO: Split the logic into separate services
 class RepositoryManager(
     private val db: AppDatabase,
-    private val identity: UserProfile  // Holds DID + signing key
+    private val identity: UserProfile,  // Holds DID + public signing key
+    private val signer: (ByteArray) -> ByteArray  // Signs with private key (e.g. Android Keystore)
 ) {
 
     // TODO: JSON serializer for debugging — CBOR would be used in production
@@ -74,7 +72,7 @@ class RepositoryManager(
     suspend fun getMyProfile(): UserProfile? {
         val entity = db.recordDao().getRecord(Collections.PROFILE, "self")
             ?: return null
-        return json.decodeFromString<UserProfile>(entity.cborBytes.toString())
+        return json.decodeFromString<UserProfile>(entity.cborBytes.decodeToString())
     }
 
     //-----Commit Management-----
@@ -84,7 +82,7 @@ class RepositoryManager(
         val rootHash = computeCid(sortedCids.joinToString("").encodeToByteArray())
         val rev = generateTid()
         val commitData = "${identity.did}|$rev|$rootHash|3"
-        val signature = identity.sign(commitData.encodeToByteArray())
+        val signature = signer(commitData.encodeToByteArray())
 
         val commit = CommitEntity(
             did = identity.did,
@@ -100,13 +98,12 @@ class RepositoryManager(
     // TODO: Replace with real CIDv1
     private fun computeCid(data: ByteArray): String {
         val hash = sha256Digest(data)
-        return "sha256:${hash.joinToString("") { "%02x".format(it) }}"
+        return "sha256:${hash.joinToString("") { (it.toInt() and 0xFF).toString(16).padStart(2, '0') }}"
     }
     // TODO: Replace with proper base32-sort encoding per ATProto spec
-    @OptIn(ExperimentalUuidApi::class)
     private fun generateTid(): String {
         val timestamp = timeZoneNow().toEpochMilliseconds() * 1000 // microseconds
-        val clockId = (random() * 1024).toInt()
+        val clockId = Random.nextInt(1024)
         val combined = (timestamp shl 10) or clockId.toLong()
 
         // Encode as base36
