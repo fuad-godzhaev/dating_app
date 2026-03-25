@@ -9,6 +9,16 @@
 
 
 
+# go-libp2p gomobile build (ADR-0004). ALL gomobile outputs are regenerated from
+# golibp2p/*.go via `gomobile bind` (see golibp2p/README.md) and are NOT committed,
+# to keep the repo clean. Tradeoff: a fresh clone must run the bind once before the
+# Android build works (needs Go + gomobile + NDK) — longer first build, clean repo.
+# Go module/build caches live on D: (D:\go), not in-repo.
+composeApp/libs/golibp2p.aar
+composeApp/libs/golibp2p-sources.jar
+composeApp/libs/golibp2p.jar
+composeApp/src/androidMain/jniLibs/
+
 # Flutter repo-specific
 /bin/cache/
 /bin/internal/bootstrap.bat
@@ -207,10 +217,35 @@ gradle-app.setting
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 
-README2.md
-*.md
 ui/core/pds/nul
 nul
 /.ai
 /.idea
 /composeApp/.idea
+/importedUIElements
+
+# --- Wirexia KMP repo hygiene ---
+# Docs are NOT tracked in this repo. Source-of-truth markdown lives in
+# D:\dating_app_docs (create future .md there, not here). Only README.md files
+# stay in-repo. Word docs and the Qodana config are excluded too.
+*.md
+!README.md
+*.docx
+qodana.yaml
+
+# Out-of-scope / abandoned trees: kept on disk for reference, excluded from git.
+#   ui/          = old Android-only prototype (superseded by composeApp/)
+#   pds/         = abandoned on-device ATProto-PDS attempt (+ its node_modules)
+#   relay-sketch/= scratch relay sketch, superseded by composeApp p2p/relay
+/ui/
+/pds/
+/relay-sketch/
+
+_nul/
+_nul
+
+# Editor / agent / tooling dotfiles (safe to ignore; per-user or regenerable)
+.claude/
+.token-savior-cache.json
+**/.token-savior-cache.json
+.tokenignore
