@@ -1,0 +1,20 @@
+package fyp.project.datingapp.di
+
+import fyp.project.datingapp.database.getRoomDatabase
+import fyp.project.datingapp.domain.auth.SecureKeyStorage
+import fyp.project.datingapp.domain.location.IosLocationProvider
+import fyp.project.datingapp.domain.location.LocationProvider
+import fyp.project.datingapp.getDatabaseBuilder
+import fyp.project.datingapp.p2p.ble.BleProximity
+import fyp.project.datingapp.p2p.ble.IosBleProximity
+import fyp.project.datingapp.p2p.discovery.IosLocalAddressProvider
+import fyp.project.datingapp.p2p.discovery.LocalAddressProvider
+import org.koin.dsl.module
+
+val iosModule = module {
+    single { getRoomDatabase(getDatabaseBuilder()) }
+    single { SecureKeyStorage() }
+    single<LocationProvider> { IosLocationProvider() }
+    single<LocalAddressProvider> { IosLocalAddressProvider() }
+    single<BleProximity> { IosBleProximity() }
+}

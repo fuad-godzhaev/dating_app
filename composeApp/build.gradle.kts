@@ -1,4 +1,3 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -6,7 +5,6 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.composeHotReload)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
     id("org.jetbrains.kotlin.plugin.serialization") version "2.3.20-RC2" //TODO: alias?
@@ -29,17 +27,21 @@ kotlin {
         }
     }
 
-    jvm()
-
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.koin.android)
+            // go-libp2p transport (ADR-0004): classes from the gomobile bind, JNI .so
+            // in src/androidMain/jniLibs. Both extracted from golibp2p.aar (see
+            // golibp2p/README.md). Split because AGP files() does not package .aar JNI.
+            implementation(files("libs/golibp2p.jar"))
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
+            implementation(libs.compose.materialIconsCore)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
@@ -48,13 +50,18 @@ kotlin {
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.decompose)
+            implementation(libs.decomposeExtensionsCompose)
+            implementation(libs.mviKotlin)
+            implementation(libs.mviKotlinMain)
+            implementation(libs.mviKotlinCoroutines)
+            implementation(libs.koin.core)
+            implementation(libs.essentyLifecycleCoroutines)
+            implementation(libs.kotlinxDatetime)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-        }
-        jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }
@@ -95,16 +102,4 @@ dependencies {
     add("kspAndroid", libs.androidx.room.compiler)
     add("kspIosSimulatorArm64", libs.androidx.room.compiler)
     add("kspIosArm64", libs.androidx.room.compiler)
-}
-
-compose.desktop {
-    application {
-        mainClass = "fyp.project.datingapp.MainKt"
-
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "fyp.project.datingapp"
-            packageVersion = "1.0.0"
-        }
-    }
 }
