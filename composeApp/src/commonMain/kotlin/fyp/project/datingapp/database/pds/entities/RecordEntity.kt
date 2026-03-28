@@ -1,8 +1,9 @@
-package fyp.project.datingapp.database
+package fyp.project.datingapp.database.pds.entities
 
 import androidx.room.Entity
 import androidx.room.Index
 
+//Generic record to store in PDS
 @Entity(
     tableName = "records",
     primaryKeys = ["collection", "rkey"],

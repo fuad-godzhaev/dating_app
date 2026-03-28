@@ -1,4 +1,4 @@
-package fyp.project.datingapp.database
+package fyp.project.datingapp.database.pds.entities
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

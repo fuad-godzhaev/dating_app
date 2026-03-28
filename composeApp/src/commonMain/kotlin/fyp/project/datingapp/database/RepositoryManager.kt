@@ -2,34 +2,35 @@ package fyp.project.datingapp.database
 
 import fyp.project.datingapp.DataValidator
 import fyp.project.datingapp.DataValidatorResult
+import fyp.project.datingapp.database.pds.entities.CommitEntity
+import fyp.project.datingapp.database.pds.entities.RecordEntity
+import fyp.project.datingapp.domain.auth.AuthRepository
 import fyp.project.datingapp.records.UserProfile
-import kotlinx.serialization.json.Json
+import fyp.project.datingapp.records.canonical.CanonicalEncoder
+import fyp.project.datingapp.records.canonical.Cid
+import fyp.project.datingapp.records.canonical.CborValue
+import fyp.project.datingapp.records.canonical.decodeUserProfile
+import fyp.project.datingapp.records.canonical.encodeCanonical
 import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-//TODO: Alternatives to experimental API's used (if any)
-
 //TODO: Split the logic into separate services
 class RepositoryManager(
     private val db: AppDatabase,
-    private val identity: UserProfile,  // Holds DID + public signing key
-    private val signer: (ByteArray) -> ByteArray  // Signs with private key (e.g. Android Keystore)
+    private val authRepository: AuthRepository,
 ) {
 
-    // TODO: JSON serializer for debugging — CBOR would be used in production
-    private val json = Json {
-        // TODO: Pretty print for debugging (disable in production for smaller payloads)
-        prettyPrint = true
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-    }
+    // Records are canonical DAG-CBOR on the wire and at rest; see
+    // fyp.project.datingapp.records.canonical.CanonicalEncoder. No JSON
+    // serializer is kept here — keeping one around invites a "serialize with
+    // json, sign with cbor" mismatch bug.
 
     //NSID constants
     object Collections {
         const val PROFILE = "fyp.project.datingapp.records.profile"
-        //const val LIKE = "fyp.project.datingapp.records.like"
-        //const val MATCH = "fyp.project.datingapp.records.match"
+        const val LIKE = "fyp.project.datingapp.records.like"
+        const val MATCH = "fyp.project.datingapp.records.match"
         const val MESSAGE = "fyp.project.datingapp.records.message"
     }
 
@@ -45,13 +46,11 @@ class RepositoryManager(
             )
         }
 
-        // Step 2: Serialize to bytes
-        // TODO: use DAG-CBOR. JSON is easier to debug.
-        val recordBytes = json.encodeToString(profile).encodeToByteArray()
+        // Step 2: Serialize to canonical DAG-CBOR bytes (exactly what's signed).
+        val recordBytes = encodeCanonical(profile)
 
-        // Step 3: Compute CID
-        // TODO: Production: CIDv1 with dag-cbor codec and sha2-256 multihash.
-        val cid = computeCid(recordBytes)
+        // Step 3: Compute CIDv1 (dag-cbor + sha2-256 multihash, base32-lower).
+        val cid = Cid.cidV1DagCbor(recordBytes)
 
         // Step 4: Store the record
         val entity = RecordEntity(
@@ -69,23 +68,44 @@ class RepositoryManager(
         return Result.success(Unit)
     }
 
+    //Fetch users profile
     suspend fun getMyProfile(): UserProfile? {
         val entity = db.recordDao().getRecord(Collections.PROFILE, "self")
             ?: return null
-        return json.decodeFromString<UserProfile>(entity.cborBytes.decodeToString())
+        return decodeUserProfile(entity.cborBytes)
+    }
+
+    // CID of the stored profile record (CIDv1 dag-cbor) — what a PresenceRecord
+    // advertises so a peer can fetch the full profile by content address (Phase D).
+    suspend fun getMyProfileCid(): String? =
+        db.recordDao().getRecord(Collections.PROFILE, "self")?.cid
+
+    //Check if user has a profile
+    suspend fun hasProfile(userId: String): Boolean {
+        return db.recordDao().getRecord(
+            collection = Collections.PROFILE,
+            rkey = "self"
+        ) != null
     }
 
     //-----Commit Management-----
     private suspend fun updateCommit() {
         val allRecords = db.recordDao().getAllRecords()
-        val sortedCids = allRecords.sortedBy { it.cid }
-        val rootHash = computeCid(sortedCids.joinToString("").encodeToByteArray())
+        // Canonical root: DAG-CBOR array of CID text strings, sorted ascending.
+        // Hashing over canonical bytes avoids the "joinToString(\"\")" ambiguity
+        // where "abc" + "d" and "ab" + "cd" would collide.
+        val sortedCids = allRecords.map { it.cid }.sorted()
+        val rootCborBytes = CanonicalEncoder.encode(
+            CborValue.CArray(sortedCids.map { CborValue.CString(it) })
+        )
+        val rootHash = Cid.cidV1DagCbor(rootCborBytes)
         val rev = generateTid()
-        val commitData = "${identity.did}|$rev|$rootHash|3"
-        val signature = signer(commitData.encodeToByteArray())
+        val did = authRepository.getDid() ?: error("No identity — cannot commit")
+        val commitData = "$did|$rev|$rootHash|3"
+        val signature = authRepository.sign(commitData.encodeToByteArray())
 
         val commit = CommitEntity(
-            did = identity.did,
+            did = did,
             rev = rev,
             rootMstCid = rootHash,
             signature = signature,
@@ -95,11 +115,6 @@ class RepositoryManager(
     }
 
     //-----Utility Functions-----
-    // TODO: Replace with real CIDv1
-    private fun computeCid(data: ByteArray): String {
-        val hash = sha256Digest(data)
-        return "sha256:${hash.joinToString("") { (it.toInt() and 0xFF).toString(16).padStart(2, '0') }}"
-    }
     // TODO: Replace with proper base32-sort encoding per ATProto spec
     private fun generateTid(): String {
         val timestamp = timeZoneNow().toEpochMilliseconds() * 1000 // microseconds
