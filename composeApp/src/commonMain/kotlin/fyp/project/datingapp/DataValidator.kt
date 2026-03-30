@@ -96,8 +96,8 @@ object DataValidator {
         }
 
         // $type field
-        if (profile.type != "app.dateable.actor.profile") {
-            errors.add("\$type must be 'app.dateable.actor.profile' (got '${profile.type}')")
+        if (profile.type != "fyp.project.datingapp.records.profile") {
+            errors.add("\$type must be 'fyp.project.datingapp.records.profile' (got '${profile.type}')")
         }
 
         return if (errors.isEmpty()) DataValidatorResult.Valid
