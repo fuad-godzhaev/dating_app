@@ -1,5 +1,30 @@
 package fyp.project.datingapp
 
 import androidx.compose.ui.window.ComposeUIViewController
+import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.arkivanov.mvikotlin.core.store.StoreFactory
+import fyp.project.datingapp.database.RepositoryManager
+import fyp.project.datingapp.di.appModule
+import fyp.project.datingapp.di.iosModule
+import fyp.project.datingapp.domain.auth.AuthRepository
+import fyp.project.datingapp.navigation.DefaultRootComponent
+import org.koin.core.context.startKoin
 
-fun MainViewController() = ComposeUIViewController { App() }
+fun MainViewController() = ComposeUIViewController {
+    val lifecycle = LifecycleRegistry()
+    val componentContext = DefaultComponentContext(lifecycle = lifecycle)
+
+    val koin = startKoin {
+        modules(iosModule, appModule)
+    }.koin
+
+    val root = DefaultRootComponent(
+        componentContext = componentContext,
+        authRepository = koin.get<AuthRepository>(),
+        repositoryManager = koin.get<RepositoryManager>(),
+        storeFactory = koin.get<StoreFactory>(),
+    )
+
+    App(root)
+}
