@@ -1,0 +1,107 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.updateProfile",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Update the user's dating profile",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "displayName": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "bio": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "gender": {
+              "type": "string"
+            },
+            "lookingFor": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "location": {
+              "type": "ref",
+              "ref": "com.fypapp.profile#location"
+            },
+            "photos": {
+              "type": "array",
+              "items": {
+                "type": "blob",
+                "accept": ["image/png", "image/jpeg", "image/webp"],
+                "maxSize": 5000000
+              },
+              "maxLength": 6
+            },
+            "interests": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "height": {
+              "type": "integer"
+            },
+            "occupation": {
+              "type": "string"
+            },
+            "education": {
+              "type": "string"
+            },
+            "relationshipType": {
+              "type": "string"
+            },
+            "smoking": {
+              "type": "string"
+            },
+            "drinking": {
+              "type": "string"
+            },
+            "children": {
+              "type": "string"
+            },
+            "pets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "languages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "isActive": {
+              "type": "boolean"
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["uri", "cid"],
+          "properties": {
+            "uri": {
+              "type": "string",
+              "format": "at-uri"
+            },
+            "cid": {
+              "type": "string",
+              "format": "cid"
+            }
+          }
+        }
+      }
+    }
+  }
+}

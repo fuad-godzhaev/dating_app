@@ -1,0 +1,31 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.block",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Block another user",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["subject", "createdAt"],
+        "properties": {
+          "subject": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the blocked user"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for blocking",
+            "knownValues": ["inappropriate", "harassment", "spam", "other"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

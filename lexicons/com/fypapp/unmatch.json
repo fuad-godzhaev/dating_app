@@ -1,0 +1,36 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.unmatch",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Unmatch with another user",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["subject"],
+          "properties": {
+            "subject": {
+              "type": "string",
+              "format": "did",
+              "description": "DID of the user to unmatch with"
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["success"],
+          "properties": {
+            "success": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

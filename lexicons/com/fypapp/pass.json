@@ -1,0 +1,26 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.pass",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A pass/swipe-left action on another user's profile",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["subject", "createdAt"],
+        "properties": {
+          "subject": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the user being passed on"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

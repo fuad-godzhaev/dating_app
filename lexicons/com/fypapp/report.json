@@ -1,0 +1,72 @@
+{
+  "lexicon": 1,
+  "id": "com.fypapp.report",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Report a user or content for violating community guidelines",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["subject", "reason"],
+          "properties": {
+            "subject": {
+              "type": "string",
+              "format": "did",
+              "description": "DID of the reported user"
+            },
+            "reason": {
+              "type": "string",
+              "description": "Reason for report",
+              "knownValues": [
+                "inappropriate-photos",
+                "harassment",
+                "spam",
+                "fake-profile",
+                "underage",
+                "offensive-content",
+                "scam",
+                "other"
+              ]
+            },
+            "details": {
+              "type": "string",
+              "description": "Additional details about the report",
+              "maxLength": 500
+            },
+            "evidence": {
+              "type": "array",
+              "description": "Screenshots or other evidence",
+              "items": {
+                "type": "blob",
+                "accept": ["image/png", "image/jpeg", "image/webp"],
+                "maxSize": 5000000
+              },
+              "maxLength": 5
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["reportId", "success"],
+          "properties": {
+            "reportId": {
+              "type": "string",
+              "description": "Unique ID for this report"
+            },
+            "success": {
+              "type": "boolean"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
