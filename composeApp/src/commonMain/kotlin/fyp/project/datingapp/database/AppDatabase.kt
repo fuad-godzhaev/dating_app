@@ -28,7 +28,7 @@ import kotlinx.coroutines.IO
         ConversationEntity::class,
         AuthSettingsEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -38,6 +38,9 @@ import kotlinx.coroutines.IO
         // columns are nullable or have SQL defaults, so Room handles the
         // migration without an AutoMigrationSpec.
         AutoMigration(from = 2, to = 3),
+        // v4 adds the nullable `signature` column to `records` (per-record P-256
+        // signature for standalone verification on fetch). Nullable ⇒ no spec.
+        AutoMigration(from = 3, to = 4),
     ]
 )
 @ConstructedBy(AppDatabaseConstructor::class)

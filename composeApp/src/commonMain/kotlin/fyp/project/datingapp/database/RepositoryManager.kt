@@ -5,6 +5,7 @@ import fyp.project.datingapp.DataValidatorResult
 import fyp.project.datingapp.database.pds.entities.CommitEntity
 import fyp.project.datingapp.database.pds.entities.RecordEntity
 import fyp.project.datingapp.domain.auth.AuthRepository
+import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
 import fyp.project.datingapp.records.UserProfile
 import fyp.project.datingapp.records.canonical.CanonicalEncoder
 import fyp.project.datingapp.records.canonical.Cid
@@ -52,13 +53,19 @@ class RepositoryManager(
         // Step 3: Compute CIDv1 (dag-cbor + sha2-256 multihash, base32-lower).
         val cid = Cid.cidV1DagCbor(recordBytes)
 
+        // Step 3b: Per-record P-256 signature over the canonical bytes, so a peer
+        // can verify this profile standalone via the owner's did:key on fetch
+        // (Phase D), independent of the MST commit signature.
+        val recordSignature = authRepository.sign(recordBytes)
+
         // Step 4: Store the record
         val entity = RecordEntity(
             collection = Collections.PROFILE,
             rkey = "self",
             cborBytes = recordBytes,
             cid = cid,
-            createdAt = timeZoneNow().toEpochMilliseconds()
+            createdAt = timeZoneNow().toEpochMilliseconds(),
+            signature = recordSignature,
         )
         db.recordDao().upsertRecord(entity)
 
@@ -79,6 +86,23 @@ class RepositoryManager(
     // advertises so a peer can fetch the full profile by content address (Phase D).
     suspend fun getMyProfileCid(): String? =
         db.recordDao().getRecord(Collections.PROFILE, "self")?.cid
+
+    // The owner-signed envelope for this user's profile, served over the fetch
+    // stream (Phase D). Returns null if there is no profile or it predates v4
+    // per-record signing (re-save the profile to populate the signature).
+    suspend fun getMyProfileEnvelope(): SignedEnvelope? {
+        val entity = db.recordDao().getRecord(Collections.PROFILE, "self") ?: return null
+        val signature = entity.signature ?: return null
+        val did = authRepository.getDid() ?: return null
+        return SignedEnvelope(
+            collection = Collections.PROFILE,
+            rkey = "self",
+            ownerDid = did,
+            cid = entity.cid,
+            canonicalBytes = entity.cborBytes,
+            signature = signature,
+        )
+    }
 
     //Check if user has a profile
     suspend fun hasProfile(userId: String): Boolean {

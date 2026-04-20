@@ -18,7 +18,11 @@ data class RecordEntity(
     val rkey: String,          // Record key: "self" or TID
     val cborBytes: ByteArray,
     val cid: String,           // CIDv1 of the CBOR bytes
-    val createdAt: Long
+    val createdAt: Long,
+    // v4: per-record ECDSA P-256 signature over [cborBytes] (the exact bytes that
+    // were signed). Lets a peer verify this record standalone via the owner's
+    // did:key, independent of the MST commit. Nullable for pre-v4 / legacy rows.
+    val signature: ByteArray? = null,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

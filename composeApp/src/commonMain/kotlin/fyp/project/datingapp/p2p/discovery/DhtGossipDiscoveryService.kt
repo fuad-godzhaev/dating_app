@@ -29,6 +29,7 @@ class DhtGossipDiscoveryService(
     private val locator: GeohashLocator,
     private val verifier: SignatureVerifier,
     private val authRepository: AuthRepository,
+    private val peerDirectory: PeerDirectory,
     private val clock: EpochClock = SystemClock,
     private val maxDhtResults: Int = DEFAULT_MAX_DHT_RESULTS,
 ) : DiscoveryService {
@@ -54,6 +55,9 @@ class DhtGossipDiscoveryService(
             if (record.did == selfDid) return null
             if (isExpired(record)) return null
             if (!PresenceVerifier.verify(record, verifier)) return null
+            // Record reachability for every verified peer (even if filtered out),
+            // so the fetch cascade can dial it later via PeerDirectory.
+            peerDirectory.record(record.did, record.peerId, record.multiaddrs)
             if (!filters.matches(record)) return null
             return mutex.withLock {
                 val prev = newest[record.did]

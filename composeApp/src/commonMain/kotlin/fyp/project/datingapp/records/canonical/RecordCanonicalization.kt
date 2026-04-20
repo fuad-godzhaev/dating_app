@@ -2,6 +2,9 @@ package fyp.project.datingapp.records.canonical
 
 import fyp.project.datingapp.p2p.transport.wire.AgeRange
 import fyp.project.datingapp.p2p.transport.wire.PresenceRecord
+import fyp.project.datingapp.p2p.transport.wire.ProfileFetchRequest
+import fyp.project.datingapp.p2p.transport.wire.ProfileFetchResponse
+import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
 import fyp.project.datingapp.records.BlobRef
 import fyp.project.datingapp.records.Geolocation
 import fyp.project.datingapp.records.Like
@@ -185,6 +188,82 @@ fun decodePresenceRecord(bytes: ByteArray): PresenceRecord {
 private fun ageRangeFrom(v: CborValue): AgeRange {
     val m = v.asMap()
     return AgeRange(min = m.getValue("min").asInt(), max = m.getValue("max").asInt())
+}
+
+// ---- fetch wire messages (Phase D, /datingapp/profile/1.0.0) -----------------
+// These are stream control messages, not signed records. They are encoded with
+// the canonical encoder only for a deterministic, dependency-free wire form. The
+// crucial invariant is that [SignedEnvelope.canonicalBytes] is carried as an
+// opaque CBOR byte string and round-trips **verbatim** (never re-encoded), so the
+// owner's signature still verifies after transit (§10 byte-preservation).
+
+fun SignedEnvelope.toCborValue(): CborValue = CborValue.CMap(buildMap {
+    put("\$type", CborValue.CString(type))
+    put("collection", CborValue.CString(collection))
+    put("rkey", CborValue.CString(rkey))
+    put("ownerDid", CborValue.CString(ownerDid))
+    put("cid", CborValue.CString(cid))
+    put("canonicalBytes", CborValue.CBytes(canonicalBytes))
+    put("signature", CborValue.CBytes(signature))
+})
+
+fun ProfileFetchRequest.toCborValue(): CborValue = CborValue.CMap(buildMap {
+    put("\$type", CborValue.CString(type))
+    put("targetDid", CborValue.CString(targetDid))
+    ifNotCid?.let { put("ifNotCid", CborValue.CString(it)) }
+})
+
+fun ProfileFetchResponse.toCborValue(): CborValue = CborValue.CMap(buildMap {
+    put("\$type", CborValue.CString(type))
+    put("targetDid", CborValue.CString(targetDid))
+    record?.let { put("record", it.toCborValue()) }
+    put("cidMatch", CborValue.CBool(cidMatch))
+    error?.let { put("error", CborValue.CString(it)) }
+})
+
+fun encodeCanonical(envelope: SignedEnvelope): ByteArray =
+    CanonicalEncoder.encode(envelope.toCborValue())
+
+fun encodeProfileFetchRequest(request: ProfileFetchRequest): ByteArray =
+    CanonicalEncoder.encode(request.toCborValue())
+
+fun encodeProfileFetchResponse(response: ProfileFetchResponse): ByteArray =
+    CanonicalEncoder.encode(response.toCborValue())
+
+fun decodeSignedEnvelope(bytes: ByteArray): SignedEnvelope =
+    signedEnvelopeFrom(CanonicalDecoder.decode(bytes))
+
+fun decodeProfileFetchRequest(bytes: ByteArray): ProfileFetchRequest {
+    val m = CanonicalDecoder.decode(bytes).asMap()
+    return ProfileFetchRequest(
+        type = m["\$type"]?.asString() ?: "fyp.project.datingapp.p2p.profileRequest",
+        targetDid = m.getValue("targetDid").asString(),
+        ifNotCid = (m["ifNotCid"] as? CborValue.CString)?.v,
+    )
+}
+
+fun decodeProfileFetchResponse(bytes: ByteArray): ProfileFetchResponse {
+    val m = CanonicalDecoder.decode(bytes).asMap()
+    return ProfileFetchResponse(
+        type = m["\$type"]?.asString() ?: "fyp.project.datingapp.p2p.profileResponse",
+        targetDid = m.getValue("targetDid").asString(),
+        record = m["record"]?.let(::signedEnvelopeFrom),
+        cidMatch = (m["cidMatch"] as? CborValue.CBool)?.v ?: false,
+        error = (m["error"] as? CborValue.CString)?.v,
+    )
+}
+
+private fun signedEnvelopeFrom(v: CborValue): SignedEnvelope {
+    val m = v.asMap()
+    return SignedEnvelope(
+        type = m["\$type"]?.asString() ?: "fyp.project.datingapp.p2p.envelope",
+        collection = m.getValue("collection").asString(),
+        rkey = m.getValue("rkey").asString(),
+        ownerDid = m.getValue("ownerDid").asString(),
+        cid = m.getValue("cid").asString(),
+        canonicalBytes = m.getValue("canonicalBytes").asBytes(),
+        signature = m.getValue("signature").asBytes(),
+    )
 }
 
 private fun blobRefFrom(v: CborValue): BlobRef {
