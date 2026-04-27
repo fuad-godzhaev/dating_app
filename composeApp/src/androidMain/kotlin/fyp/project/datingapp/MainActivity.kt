@@ -19,6 +19,10 @@ import fyp.project.datingapp.p2p.ble.BleBeacon
 import fyp.project.datingapp.p2p.ble.BleProximity
 import fyp.project.datingapp.p2p.discovery.DiscoveryService
 import fyp.project.datingapp.p2p.discovery.GeohashLocator
+import fyp.project.datingapp.p2p.discovery.PeerDirectory
+import fyp.project.datingapp.p2p.fetch.ProfileFetcher
+import fyp.project.datingapp.p2p.fetch.StreamProfileFetcher
+import fyp.project.datingapp.p2p.feed.PeerProfileFeed
 import fyp.project.datingapp.p2p.transport.AndroidTransportEnv
 import fyp.project.datingapp.p2p.transport.Libp2pTransport
 import fyp.project.datingapp.p2p.transport.P2pSmoke
@@ -108,6 +112,25 @@ class MainActivity : ComponentActivity() {
                     (intent.getStringExtra("seed_interests") ?: "music,hiking").split(","),
                 )
             }
+            "profilefetch" -> CoroutineScope(Dispatchers.IO).launch {
+                P2pSmoke.runProfileFetch(
+                    applicationContext,
+                    koin.get<Libp2pTransport>(),
+                    koin.get<DiscoveryService>(),
+                    koin.get<ProfileFetcher>(),
+                    koin.get<StreamProfileFetcher>(),
+                    koin.get<GeohashLocator>(),
+                    koin.get<PeerDirectory>(),
+                    intent.getStringExtra("p2p_geohash") ?: "gc7x3",
+                )
+            }
+            "feedcheck" -> CoroutineScope(Dispatchers.IO).launch {
+                P2pSmoke.runFeedCheck(
+                    koin.get<PeerProfileFeed>(),
+                    koin.get<GeohashLocator>(),
+                    intent.getStringExtra("p2p_geohash") ?: "gc7x3",
+                )
+            }
             "keycheck" -> CoroutineScope(Dispatchers.IO).launch { P2pSmoke.keyCheck() }
             "recoverycheck" -> CoroutineScope(Dispatchers.IO).launch {
                 val repo = koin.get<AuthRepository>()
@@ -132,6 +155,7 @@ class MainActivity : ComponentActivity() {
             authRepository = koin.get<AuthRepository>(),
             repositoryManager = koin.get<RepositoryManager>(),
             storeFactory = koin.get<StoreFactory>(),
+            peerProfileFeed = koin.get<PeerProfileFeed>(),
         )
 
         setContent {

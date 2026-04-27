@@ -19,8 +19,8 @@ interface SignInComponent {
         val enteredDigits: String = "",
         val isVerifying: Boolean = false,
         val error: String? = null,
-        val attemptsRemaining: Int = MAX_ATTEMPTS,
-        val isLockedOut: Boolean = false
+        val incorrectAttempts: Int = 0,
+        val suggestRecovery: Boolean = false,
     ) {
         val digitCount: Int get() = enteredDigits.length
         val isComplete: Boolean get() = enteredDigits.length == PIN_LENGTH
@@ -28,7 +28,9 @@ interface SignInComponent {
 
     companion object {
         const val PIN_LENGTH = 4
-        const val MAX_ATTEMPTS = 5
+        // PIN attempts are unlimited (no lockout). After this many wrong tries we
+        // proactively suggest restoring the account from the recovery phrase.
+        const val SUGGEST_RECOVERY_AFTER = 3
     }
 }
 
@@ -46,7 +48,7 @@ class DefaultSignInComponent(
 
     override fun onDigitEntered(digit: Char) {
         val current = _state.value
-        if (current.isLockedOut || current.isVerifying) return
+        if (current.isVerifying) return
         if (current.enteredDigits.length >= SignInComponent.PIN_LENGTH) return
 
         val updated = current.enteredDigits + digit
@@ -75,14 +77,17 @@ class DefaultSignInComponent(
                 _state.value = _state.value.copy(isVerifying = false)
                 onNavigateToHome()
             } else {
-                val remaining = _state.value.attemptsRemaining - 1
+                val attempts = _state.value.incorrectAttempts + 1
+                val suggest = attempts >= SignInComponent.SUGGEST_RECOVERY_AFTER
                 _state.value = _state.value.copy(
                     enteredDigits = "",
                     isVerifying = false,
-                    error = if (remaining > 0) "Incorrect PIN. $remaining attempts remaining."
-                            else "Too many attempts. Use seed phrase to restore.",
-                    attemptsRemaining = remaining,
-                    isLockedOut = remaining <= 0
+                    incorrectAttempts = attempts,
+                    suggestRecovery = suggest,
+                    error = if (suggest)
+                        "Incorrect PIN. Forgot it? You can restore your account with your recovery phrase."
+                    else
+                        "Incorrect PIN. Try again.",
                 )
             }
         }

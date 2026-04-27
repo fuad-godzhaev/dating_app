@@ -13,7 +13,14 @@ import fyp.project.datingapp.p2p.discovery.DhtGossipDiscoveryService
 import fyp.project.datingapp.p2p.discovery.DiscoveryPreferencesStore
 import fyp.project.datingapp.p2p.discovery.DiscoveryService
 import fyp.project.datingapp.p2p.discovery.GeohashLocator
+import fyp.project.datingapp.p2p.discovery.PeerDirectory
 import fyp.project.datingapp.p2p.discovery.PresenceAnnouncer
+import fyp.project.datingapp.p2p.fetch.CascadingProfileFetcher
+import fyp.project.datingapp.p2p.fetch.Libp2pProfileStreamClient
+import fyp.project.datingapp.p2p.fetch.ProfileFetcher
+import fyp.project.datingapp.p2p.fetch.ProfileStreamClient
+import fyp.project.datingapp.p2p.fetch.StreamProfileFetcher
+import fyp.project.datingapp.p2p.feed.PeerProfileFeed
 import fyp.project.datingapp.p2p.transport.Libp2pConfig
 import fyp.project.datingapp.p2p.transport.Libp2pTransport
 import org.koin.dsl.module
@@ -32,6 +39,31 @@ val appModule = module {
     }
     single { DiscoveryPreferencesStore() }
     single { GeohashLocator(get()) }
+    single { PeerDirectory() }
     single { PresenceAnnouncer(get(), get(), get(), get(), get(), get()) }
-    single<DiscoveryService> { DhtGossipDiscoveryService(get(), get(), get(), get(), get()) }
+    single<DiscoveryService> { DhtGossipDiscoveryService(get(), get(), get(), get(), get(), get()) }
+
+    // ---- Phase D: fetch (turn a discovered DID + CID into a verified profile) ----
+    single<ProfileStreamClient> { Libp2pProfileStreamClient(get()) }
+    single<ProfileFetcher> {
+        val auth = get<AuthRepository>()
+        val repo = get<RepositoryManager>()
+        CascadingProfileFetcher(
+            selfDid = { auth.getDid() },
+            ownEnvelope = { repo.getMyProfileEnvelope() },
+            cache = get<AppDatabase>().discoveryDao(),
+            peerDirectory = get(),
+            streamClient = get(),
+            verifier = get(),
+        )
+    }
+    // Owner-side serving handler; register() it on the transport after start.
+    single {
+        val auth = get<AuthRepository>()
+        val repo = get<RepositoryManager>()
+        StreamProfileFetcher(selfDid = { auth.getDid() }, ownEnvelope = { repo.getMyProfileEnvelope() })
+    }
+
+    // ---- Phase G.2: real peer feed (discovery + fetch behind one facade) ----
+    single { PeerProfileFeed(get(), get(), get(), get(), get()) }
 }

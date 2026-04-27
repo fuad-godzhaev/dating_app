@@ -9,6 +9,7 @@ import fyp.project.datingapp.di.appModule
 import fyp.project.datingapp.di.iosModule
 import fyp.project.datingapp.domain.auth.AuthRepository
 import fyp.project.datingapp.navigation.DefaultRootComponent
+import fyp.project.datingapp.p2p.feed.PeerProfileFeed
 import org.koin.core.context.startKoin
 
 fun MainViewController() = ComposeUIViewController {
@@ -24,6 +25,7 @@ fun MainViewController() = ComposeUIViewController {
         authRepository = koin.get<AuthRepository>(),
         repositoryManager = koin.get<RepositoryManager>(),
         storeFactory = koin.get<StoreFactory>(),
+        peerProfileFeed = koin.get<PeerProfileFeed>(),
     )
 
     App(root)

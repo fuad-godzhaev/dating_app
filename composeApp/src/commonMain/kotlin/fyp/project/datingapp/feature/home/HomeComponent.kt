@@ -9,6 +9,7 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import fyp.project.datingapp.database.RepositoryManager
+import fyp.project.datingapp.p2p.feed.PeerProfileFeed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -42,6 +43,7 @@ class DefaultHomeComponent(
     componentContext: ComponentContext,
     storeFactory: StoreFactory,
     repositoryManager: RepositoryManager,
+    peerProfileFeed: PeerProfileFeed,
     private val navigateToEditProfile: () -> Unit = {},
     private val navigateToMessages: () -> Unit = {},
 ) : HomeComponent, ComponentContext by componentContext {
@@ -51,6 +53,7 @@ class DefaultHomeComponent(
             storeFactory = storeFactory,
             database = object : HomeStoreFactory.Database {},
             repositoryManager = repositoryManager,
+            peerProfileFeed = peerProfileFeed,
         ).provide()
     }
 

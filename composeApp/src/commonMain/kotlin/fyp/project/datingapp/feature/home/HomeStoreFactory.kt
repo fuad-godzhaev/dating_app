@@ -8,13 +8,15 @@ import fyp.project.datingapp.database.RepositoryManager
 import fyp.project.datingapp.feature.home.HomeStore.Intent
 import fyp.project.datingapp.feature.home.HomeStore.Label
 import fyp.project.datingapp.feature.home.HomeStore.State
+import fyp.project.datingapp.p2p.feed.PeerProfileFeed
 import fyp.project.datingapp.records.Match
 import kotlinx.coroutines.launch
 
 class HomeStoreFactory (
     private val storeFactory: StoreFactory,
     private val database: Database,
-    private val repositoryManager: RepositoryManager
+    private val repositoryManager: RepositoryManager,
+    private val peerProfileFeed: PeerProfileFeed,
 ) {
 
     fun provide(): HomeStore =
@@ -28,6 +30,7 @@ class HomeStoreFactory (
     private sealed class Msg {
         data object ProfilesLoading : Msg()
         data class ProfilesLoaded(val profiles: List<State.ProfileCardState>): Msg()
+        data class ProfileArrived(val card: State.ProfileCardState): Msg()
         data class PictureLoaded(val profileDid: String, val pictureRef: String) : Msg()
         data object TopCardRemoved: Msg()
         data class MatchOccured(
@@ -61,27 +64,19 @@ class HomeStoreFactory (
             dispatch(Msg.ProfilesLoading)
             scope.launch {
                 try {
-                    // TODO(Phase G.2): replace with repositoryManager.peerCandidates()
-                    //                  reading from DiscoveryDao + RelayPolicy.get.
-                    //                  DemoProfiles.kt is one `git rm` away from gone.
-                    val profiles = DemoProfiles.list()
-
-                    val cardState = profiles.map { profile ->
-                        State.ProfileCardState(
+                    // Real peer feed (Phase G.2): discover peers, fetch + verify each
+                    // full profile, and append it as a card as it arrives. The flow is
+                    // continuous (GossipSub-backed), so collection runs for the store's
+                    // lifetime. TODO(G.2 follow-up): photo-blob fetch + relay-cache
+                    //   sighting hook on Msg.PictureLoaded; client-side DiscoveryFilters.
+                    peerProfileFeed.candidates().collect { profile ->
+                        val card = State.ProfileCardState(
                             profile = profile,
                             pictureBlobs = (profile.photos ?: emptyList()).map { blob ->
                                 State.PictureState.Loading(blob.ref)
                             },
                         )
-                    }
-                    dispatch(Msg.ProfilesLoaded(cardState))
-
-                    profiles.forEach { profile ->
-                        (profile.photos ?: emptyList()).forEach { blob ->
-                            scope.launch {
-                                loadPicture(profile.did, blob.ref)
-                            }
-                        }
+                        dispatch(Msg.ProfileArrived(card))
                     }
                 } catch(e: Exception) {
                     val message = e.message ?: "Failed to load profiles"
@@ -108,6 +103,11 @@ class HomeStoreFactory (
             when (msg) {
                 Msg.ProfilesLoading -> copy(contentState = State.ContentState.Loading)
                 is Msg.ProfilesLoaded -> copy(contentState  = State.ContentState.Loaded(profiles = msg.profiles))
+                is Msg.ProfileArrived -> {
+                    val existing = (contentState as? State.ContentState.Loaded)?.profiles ?: emptyList()
+                    if (existing.any { it.profile.did == msg.card.profile.did }) this
+                    else copy(contentState = State.ContentState.Loaded(profiles = existing + msg.card))
+                }
                 is Msg.ProfilesError -> copy(contentState = State.ContentState.Error(msg.message))
                 is Msg.PictureLoaded -> {
                     val content = contentState

@@ -9,6 +9,8 @@ import fyp.project.datingapp.p2p.ble.BleProximity
 import fyp.project.datingapp.p2p.ble.IosBleProximity
 import fyp.project.datingapp.p2p.discovery.IosLocalAddressProvider
 import fyp.project.datingapp.p2p.discovery.LocalAddressProvider
+import fyp.project.datingapp.p2p.feed.IosLanBootstrap
+import fyp.project.datingapp.p2p.feed.LanBootstrap
 import org.koin.dsl.module
 
 val iosModule = module {
@@ -17,4 +19,5 @@ val iosModule = module {
     single<LocationProvider> { IosLocationProvider() }
     single<LocalAddressProvider> { IosLocalAddressProvider() }
     single<BleProximity> { IosBleProximity() }
+    single<LanBootstrap> { IosLanBootstrap() }
 }

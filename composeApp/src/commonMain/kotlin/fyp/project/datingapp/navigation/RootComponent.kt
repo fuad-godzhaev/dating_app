@@ -18,6 +18,7 @@ import fyp.project.datingapp.feature.onboarding.signup.DefaultSignUpComponent
 import fyp.project.datingapp.feature.onboarding.signup.SignUpComponent
 import fyp.project.datingapp.feature.splash.DefaultSplashComponent
 import fyp.project.datingapp.feature.splash.SplashComponent
+import fyp.project.datingapp.p2p.feed.PeerProfileFeed
 import kotlinx.serialization.Serializable
 
 interface RootComponent {
@@ -36,6 +37,7 @@ class DefaultRootComponent(
     private val authRepository: AuthRepository,
     private val repositoryManager: RepositoryManager,
     private val storeFactory: StoreFactory,
+    private val peerProfileFeed: PeerProfileFeed,
 ) : RootComponent, ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
@@ -83,6 +85,7 @@ class DefaultRootComponent(
                     componentContext = componentContext,
                     storeFactory = storeFactory,
                     repositoryManager = repositoryManager,
+                    peerProfileFeed = peerProfileFeed,
                 )
             )
         }

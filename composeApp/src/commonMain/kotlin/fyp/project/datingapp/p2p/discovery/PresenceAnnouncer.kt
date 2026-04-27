@@ -53,9 +53,18 @@ class PresenceAnnouncer(
     fun startAnnouncing(scope: CoroutineScope) {
         if (job?.isActive == true) return
         job = scope.launch {
+            var iteration = 0
             while (isActive) {
                 runCatching { announceOnce() }
-                delay(republishIntervalMs)
+                // The first announce(s) race connection setup: a DHT put with no
+                // connected peer fails and GossipSub has no mesh yet. Re-publish
+                // rapidly at first so a peer that connects within the first minute
+                // is discovered promptly, then settle to the steady interval (which
+                // stays well under the TTL for liveness).
+                val delayMs =
+                    if (iteration < INITIAL_BURST_COUNT) INITIAL_BURST_INTERVAL_MS else republishIntervalMs
+                iteration++
+                delay(delayMs)
             }
         }
     }
@@ -101,7 +110,10 @@ class PresenceAnnouncer(
 
     companion object {
         const val DEFAULT_TTL_MS: Long = 15 * 60 * 1000L                  // 15 min (§6.2)
-        const val DEFAULT_REPUBLISH_INTERVAL_MS: Long = 10 * 60 * 1000L   // refresh before expiry
+        const val DEFAULT_REPUBLISH_INTERVAL_MS: Long = 10 * 60 * 1000L   // steady refresh before expiry
+        // Initial rapid announces to win the connection race + snappy first discovery.
+        const val INITIAL_BURST_COUNT: Int = 8
+        const val INITIAL_BURST_INTERVAL_MS: Long = 8_000L
 
         /** Parse the TCP port from a libp2p listen multiaddr list ("/ip4/.../tcp/<port>"). */
         fun parseTcpPort(addrs: List<String>): Int? {

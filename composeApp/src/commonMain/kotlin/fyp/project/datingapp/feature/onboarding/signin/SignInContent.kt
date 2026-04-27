@@ -88,7 +88,7 @@ fun SignInContent(
                     row.forEach { digit ->
                         TextButton(
                             onClick = { onDigitEntered(digit) },
-                            enabled = !state.isLockedOut && !state.isVerifying,
+                            enabled = !state.isVerifying,
                             modifier = Modifier.size(72.dp)
                         ) {
                             Text(digit.toString(), color = Color.White, fontSize = 24.sp)
@@ -104,7 +104,7 @@ fun SignInContent(
                 Spacer(modifier = Modifier.size(72.dp))
                 TextButton(
                     onClick = { onDigitEntered('0') },
-                    enabled = !state.isLockedOut && !state.isVerifying,
+                    enabled = !state.isVerifying,
                     modifier = Modifier.size(72.dp)
                 ) {
                     Text("0", color = Color.White, fontSize = 24.sp)
@@ -118,7 +118,11 @@ fun SignInContent(
             }
 
             TextButton(onClick = onForgotPin) {
-                Text("Forgot PIN?", color = Color.White)
+                Text(
+                    if (state.suggestRecovery) "Restore account with recovery phrase"
+                    else "Forgot PIN?",
+                    color = Color.White,
+                )
             }
 
             Spacer(modifier = Modifier.height(44.dp))

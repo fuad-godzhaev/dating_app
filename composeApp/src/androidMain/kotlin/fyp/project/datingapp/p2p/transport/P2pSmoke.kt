@@ -13,6 +13,9 @@ import fyp.project.datingapp.p2p.discovery.DiscoveryFilters
 import fyp.project.datingapp.p2p.discovery.DiscoveryService
 import fyp.project.datingapp.p2p.discovery.GeohashLocator
 import fyp.project.datingapp.p2p.discovery.PresenceAnnouncer
+import fyp.project.datingapp.p2p.fetch.ProfileFetcher
+import fyp.project.datingapp.p2p.fetch.StreamProfileFetcher
+import fyp.project.datingapp.p2p.feed.PeerProfileFeed
 import fyp.project.datingapp.p2p.transport.wire.AgeRange
 import java.math.BigInteger
 import java.security.Signature
@@ -323,6 +326,14 @@ object P2pSmoke {
                     createdAt = kotlin.time.Clock.System.now().toString(),
                 )
                 repositoryManager.putProfile(profile).getOrThrow()
+            } else if (repositoryManager.getMyProfileEnvelope() == null) {
+                // Profile predates Phase D per-record signing (signature is NULL):
+                // re-save the same record so it gets a per-record signature.
+                val existing = repositoryManager.getMyProfile()
+                if (existing != null) {
+                    repositoryManager.putProfile(existing).getOrThrow()
+                    Log.i(TAG, "SEED re-signed existing profile")
+                }
             }
             Log.i(
                 TAG,
@@ -330,6 +341,124 @@ object P2pSmoke {
             )
         } catch (e: Throwable) {
             Log.e(TAG, "SEED ERROR ${e.message}", e)
+        }
+    }
+
+    /**
+     * Phase G.2 FEEDCHECK role (run on BOTH emulators). Exercises the production
+     * `PeerProfileFeed` facade end to end - the exact code the Home screen calls:
+     * ensureStarted() (host + serving handler + NSD LAN bootstrap + presence
+     * heartbeat) then candidates() (discover -> fetch -> verify -> decode). Logs
+     * each resolved profile card. PASS = each emulator logs "FEED card" for the
+     * other's real profile. A debug geohash forces both into the same cell so the
+     * result doesn't depend on emulator location. `adb logcat -s P2pSmoke`.
+     */
+    suspend fun runFeedCheck(feed: PeerProfileFeed, locator: GeohashLocator, geohash: String) {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val seen = mutableSetOf<String>()
+        try {
+            locator.setDebugGeohash(geohash)
+            Log.i(TAG, "FEED starting (geohash=$geohash)")
+            scope.launch {
+                feed.candidates().collect { profile ->
+                    if (seen.add(profile.did)) {
+                        Log.i(TAG, "FEED card did=${profile.did} name='${profile.displayName}' bio='${profile.bio}' age=${profile.age}")
+                    }
+                }
+            }
+            delay(90_000)
+            Log.i(TAG, "FEED cards=${seen.size}")
+        } catch (e: Throwable) {
+            Log.e(TAG, "FEED ERROR ${e.message}", e)
+        } finally {
+            scope.cancel()
+            Log.i(TAG, "FEED DONE (cards=${seen.size})")
+        }
+    }
+
+    /**
+     * Phase D PROFILEFETCH role (run on BOTH emulators). Discovers peers via Phase
+     * C presence (shared debug geohash, NSD LAN bootstrap), then for each verified
+     * candidate fetches its **full profile** over the direct-P2P cascade
+     * (/datingapp/profile/1.0.0), verifies the owner signature, decodes, and logs
+     * displayName/bio/age. Also serves its own profile (registers the handler) and
+     * checks that a second fetch is a local-cache hit. PASS = each emulator logs
+     * "FETCH OK" for the other's profile. `adb logcat -s P2pSmoke`.
+     */
+    suspend fun runProfileFetch(
+        context: Context,
+        transport: Libp2pTransport,
+        discovery: DiscoveryService,
+        fetcher: ProfileFetcher,
+        streamServer: StreamProfileFetcher,
+        locator: GeohashLocator,
+        peerDirectory: fyp.project.datingapp.p2p.discovery.PeerDirectory,
+        geohash: String,
+    ) {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        var nsd: NsdDiscovery? = null
+        val fetched = mutableSetOf<String>()
+        try {
+            locator.setDebugGeohash(geohash)
+            transport.start()
+            streamServer.register(transport) // serve our own profile on the fetch protocol
+            val port = PresenceAnnouncer.parseTcpPort(transport.listenAddrs) ?: 4001
+            Log.i(TAG, "FETCH peerId=${transport.peerId} port=$port geohash=$geohash ip=${DeviceNet.localIpv4(context)}")
+
+            nsd = NsdDiscovery(context, transport.peerId) { maddr, _ ->
+                scope.launch { runCatching { transport.connect(maddr) } }
+            }
+            nsd.register(port)
+            nsd.discover()
+
+            scope.launch {
+                while (isActive) {
+                    runCatching { discovery.announceOnce() }
+                    delay(5000)
+                }
+            }
+
+            scope.launch {
+                discovery.candidates().collect { rec ->
+                    if (fetched.add(rec.did)) {
+                        Log.i(TAG, "FETCH discovered ${rec.did} cid=${rec.profileCid}; fetching profile")
+                        // Fetch in its own coroutine so the candidates collector keeps
+                        // consuming (and keeps PeerDirectory fresh) while we retry.
+                        scope.launch {
+                            var profile: fyp.project.datingapp.records.UserProfile? = null
+                            repeat(10) { attempt ->
+                                if (profile == null) {
+                                    val contact = peerDirectory.get(rec.did)
+                                    val result = runCatching { fetcher.fetch(rec.did, rec.profileCid) }
+                                    profile = result.getOrNull()
+                                    if (profile == null) {
+                                        Log.i(TAG, "FETCH try=$attempt did=${rec.did} peer=${contact?.peerId} maddr=${contact?.multiaddrs} err=${result.exceptionOrNull()?.message}")
+                                        delay(4000)
+                                    }
+                                }
+                            }
+                            val p = profile
+                            if (p != null) {
+                                Log.i(TAG, "FETCH OK did=${rec.did} name='${p.displayName}' bio='${p.bio}' age=${p.age}")
+                                val again = runCatching { fetcher.fetch(rec.did, rec.profileCid) }.getOrNull()
+                                Log.i(TAG, "FETCH cache-hit-second=${if (again != null) "OK" else "MISS"}")
+                            } else {
+                                Log.i(TAG, "FETCH FAIL did=${rec.did} (no verified profile after retries)")
+                            }
+                        }
+                    }
+                }
+            }
+
+            delay(90_000)
+            Log.i(TAG, "FETCH fetched=${fetched.size}")
+        } catch (e: Throwable) {
+            Log.e(TAG, "FETCH ERROR ${e.message}", e)
+        } finally {
+            nsd?.stop()
+            discovery.stopAnnouncing()
+            scope.cancel()
+            Log.i(TAG, "FETCH DONE (count=${fetched.size})")
         }
     }
 
