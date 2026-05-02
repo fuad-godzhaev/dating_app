@@ -4,14 +4,22 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import fyp.project.datingapp.database.RepositoryManager
+import fyp.project.datingapp.database.appView.dao.MessageDao
 import fyp.project.datingapp.domain.ResolveStartDestinationUseCase
 import fyp.project.datingapp.domain.auth.AuthRepository
+import fyp.project.datingapp.feature.chat.ChatComponent
+import fyp.project.datingapp.feature.chat.ConversationListComponent
+import fyp.project.datingapp.feature.chat.DefaultChatComponent
+import fyp.project.datingapp.feature.chat.DefaultConversationListComponent
 import fyp.project.datingapp.feature.home.DefaultHomeComponent
 import fyp.project.datingapp.feature.home.HomeComponent
+import fyp.project.datingapp.p2p.messaging.MessageService
 import fyp.project.datingapp.feature.onboarding.signin.DefaultSignInComponent
 import fyp.project.datingapp.feature.onboarding.signin.SignInComponent
 import fyp.project.datingapp.feature.onboarding.signup.DefaultSignUpComponent
@@ -19,6 +27,8 @@ import fyp.project.datingapp.feature.onboarding.signup.SignUpComponent
 import fyp.project.datingapp.feature.splash.DefaultSplashComponent
 import fyp.project.datingapp.feature.splash.SplashComponent
 import fyp.project.datingapp.p2p.feed.PeerProfileFeed
+import fyp.project.datingapp.p2p.relay.RelayPolicy
+import fyp.project.datingapp.p2p.relay.SessionInteractionTokens
 import kotlinx.serialization.Serializable
 
 interface RootComponent {
@@ -29,6 +39,8 @@ interface RootComponent {
         class SignIn(val component: SignInComponent) : Child()
         class SignUp(val component: SignUpComponent) : Child()
         class Home(val component: HomeComponent) : Child()
+        class Messages(val component: ConversationListComponent) : Child()
+        class Chat(val component: ChatComponent) : Child()
     }
 }
 
@@ -38,6 +50,10 @@ class DefaultRootComponent(
     private val repositoryManager: RepositoryManager,
     private val storeFactory: StoreFactory,
     private val peerProfileFeed: PeerProfileFeed,
+    private val relayPolicy: RelayPolicy,
+    private val sessionTokens: SessionInteractionTokens,
+    private val messageService: MessageService,
+    private val messageDao: MessageDao,
 ) : RootComponent, ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
@@ -86,6 +102,26 @@ class DefaultRootComponent(
                     storeFactory = storeFactory,
                     repositoryManager = repositoryManager,
                     peerProfileFeed = peerProfileFeed,
+                    relayPolicy = relayPolicy,
+                    sessionTokens = sessionTokens,
+                    navigateToMessages = { navigation.push(Config.Messages) },
+                )
+            )
+            Config.Messages -> RootComponent.Child.Messages(
+                component = DefaultConversationListComponent(
+                    componentContext = componentContext,
+                    messageDao = messageDao,
+                    onOpen = { peerDid -> navigation.push(Config.Chat(peerDid)) },
+                    onBackClick = { navigation.pop() },
+                )
+            )
+            is Config.Chat -> RootComponent.Child.Chat(
+                component = DefaultChatComponent(
+                    componentContext = componentContext,
+                    peerDid = config.peerDid,
+                    messageDao = messageDao,
+                    messageService = messageService,
+                    onBackClick = { navigation.pop() },
                 )
             )
         }
@@ -97,5 +133,7 @@ class DefaultRootComponent(
         @Serializable data object SignIn : Config
         @Serializable data object SignUp : Config
         @Serializable data object Home : Config
+        @Serializable data object Messages : Config
+        @Serializable data class Chat(val peerDid: String) : Config
     }
 }

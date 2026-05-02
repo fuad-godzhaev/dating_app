@@ -1,6 +1,8 @@
 package fyp.project.datingapp.p2p.relay
 
+import fyp.project.datingapp.p2p.transport.wire.ProfileInvalidation
 import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
+import fyp.project.datingapp.records.canonical.Cid
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -48,7 +50,7 @@ class RelayPolicyTest {
         val tokens = SessionInteractionTokens(ttlMs = 30_000L, clock = clock)
         val reputation = FixedCapacityScorer(capacity)
         val policy = RelayPolicy(
-            selfDid = selfDid,
+            selfDid = { selfDid },
             discoveryDao = dao,
             rateLimiter = limiter,
             sessionTokens = tokens,
@@ -189,5 +191,91 @@ class RelayPolicyTest {
         assertEquals(1, fx.dao.countCached())
         policy.onInvalidation("did:key:peer")
         assertEquals(0, fx.dao.countCached())
+    }
+
+    // --- Phase E: onInvalidationReplace ------------------------------------
+
+    private fun invalidation(ownerDid: String, cid: String, body: ByteArray) =
+        ProfileInvalidation(
+            ownerDid = ownerDid,
+            collection = "fyp.project.datingapp.records.profile",
+            rkey = "self",
+            cid = cid,
+            canonicalBytes = body,
+            signature = byteArrayOf(8, 8, 8),
+            publishedAt = "2026-05-23T12:00:00Z",
+        )
+
+    @Test
+    fun onInvalidationReplace_swapsCachedBodyInPlace() = runTest {
+        val (policy, fx) = buildPolicy()
+        val body1 = byteArrayOf(1, 1, 1)
+        fx.clock.t = 100
+        assertTrue(policy.put(envelope(ownerDid = "did:key:peer", cid = "cidone", body = body1), fx.tokens.issue()))
+
+        val body2 = byteArrayOf(2, 2, 2, 2)
+        val cid2 = Cid.cidV1DagCbor(body2)
+        fx.clock.t = 200
+        assertTrue(policy.onInvalidationReplace(invalidation("did:key:peer", cid2, body2)))
+
+        val served = policy.get("did:key:peer")
+        assertNotNull(served)
+        assertTrue(body2.contentEquals(served.canonicalBytes))
+        assertEquals(cid2, fx.dao.getProfileByDid("did:key:peer")?.profileCid)
+    }
+
+    @Test
+    fun onInvalidationReplace_noOpWhenNotCached() = runTest {
+        val (policy, _) = buildPolicy()
+        val body = byteArrayOf(2, 2, 2)
+        assertFalse(policy.onInvalidationReplace(invalidation("did:key:absent", Cid.cidV1DagCbor(body), body)))
+    }
+
+    @Test
+    fun onInvalidationReplace_noOpWhenContentDoesNotMatchCid() = runTest {
+        val (policy, fx) = buildPolicy()
+        policy.put(envelope(ownerDid = "did:key:peer"), fx.tokens.issue())
+        // cid is not the content address of body -> integrity guard rejects.
+        assertFalse(
+            policy.onInvalidationReplace(
+                invalidation("did:key:peer", "bafyreinotmatchingcontentaddressforunittest", byteArrayOf(9, 9, 9)),
+            ),
+        )
+    }
+
+    @Test
+    fun onInvalidationReplace_noOpWhenSameCidAlreadyHeld() = runTest {
+        val (policy, fx) = buildPolicy()
+        val body = byteArrayOf(3, 3, 3)
+        val cid = Cid.cidV1DagCbor(body)
+        assertTrue(policy.put(envelope(ownerDid = "did:key:peer", cid = cid, body = body), fx.tokens.issue()))
+        // Same cid -> nothing to replace.
+        assertFalse(policy.onInvalidationReplace(invalidation("did:key:peer", cid, body)))
+    }
+
+    // --- Phase F: cacheHolder advertise on put -----------------------------
+
+    @Test
+    fun put_advertisesCacheHolderForTheCachedOwner() = runTest {
+        val dao = FakeDiscoveryDao()
+        val clock = MutableClock(0)
+        val tokens = SessionInteractionTokens(ttlMs = 30_000L, clock = clock)
+        val advertised = mutableListOf<String>()
+        val policy = RelayPolicy(
+            selfDid = { "did:key:self" },
+            discoveryDao = dao,
+            rateLimiter = IngestRateLimiter(1_000, 1_000_000, clock),
+            sessionTokens = tokens,
+            reputation = FixedCapacityScorer(20),
+            encryption = FakeCacheEncryption(),
+            clock = clock,
+            advertiser = {
+                object : CacheHolderAdvertiser {
+                    override suspend fun advertise(targetDid: String) { advertised += targetDid }
+                }
+            },
+        )
+        assertTrue(policy.put(envelope(ownerDid = "did:key:peer"), tokens.issue()))
+        assertEquals(listOf("did:key:peer"), advertised)
     }
 }

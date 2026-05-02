@@ -24,6 +24,10 @@ interface GossipSubInvalidator {
     /** Stop listening for invalidations concerning [did]. Idempotent. */
     suspend fun unsubscribe(did: String)
 
-    /** Publish an invalidation for one of *our own* records. */
-    suspend fun publish(invalidation: ProfileInvalidation, signature: ByteArray)
+    /**
+     * Publish an invalidation for one of *our own* records. The signature is
+     * carried inside [invalidation] (the owner's per-record signature over
+     * `canonicalBytes`), so no separate signature argument is needed.
+     */
+    suspend fun publish(invalidation: ProfileInvalidation)
 }

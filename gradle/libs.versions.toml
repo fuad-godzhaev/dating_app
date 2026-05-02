@@ -24,6 +24,7 @@ kotlinxDatetime = "0.6.2"
 room = "2.8.4"
 sqlite = "2.6.2"
 ksp = "2.3.5"
+coil = "3.4.0"
 
 [libraries]
 decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
@@ -59,6 +60,7 @@ mviKotlinCoroutines = { module = "com.arkivanov.mvikotlin:mvikotlin-extensions-c
 mviKotlinLogging = { module = "com.arkivanov.mvikotlin:mvikotlin-logging", version.ref = "mviKotlin" }
 essentyLifecycleCoroutines = { module = "com.arkivanov.essenty:lifecycle-coroutines", version.ref = "essenty" }
 kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 
 
 [plugins]

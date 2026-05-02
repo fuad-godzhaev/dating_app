@@ -7,6 +7,10 @@ import fyp.project.datingapp.domain.location.LocationProvider
 import fyp.project.datingapp.getDatabaseBuilder
 import fyp.project.datingapp.p2p.ble.AndroidBleProximity
 import fyp.project.datingapp.p2p.ble.BleProximity
+import fyp.project.datingapp.p2p.blob.AndroidBlobStore
+import fyp.project.datingapp.p2p.blob.BlobStore
+import fyp.project.datingapp.p2p.messaging.JcaKeyAgreement
+import fyp.project.datingapp.p2p.messaging.KeyAgreement
 import fyp.project.datingapp.p2p.discovery.AndroidLocalAddressProvider
 import fyp.project.datingapp.p2p.discovery.LocalAddressProvider
 import fyp.project.datingapp.p2p.feed.AndroidLanBootstrap
@@ -21,4 +25,6 @@ val androidModule = module {
     single<LocalAddressProvider> { AndroidLocalAddressProvider(androidContext()) }
     single<BleProximity> { AndroidBleProximity(androidContext()) }
     single<LanBootstrap> { AndroidLanBootstrap(androidContext(), get()) }
+    single<BlobStore> { AndroidBlobStore(androidContext()) }
+    single<KeyAgreement> { JcaKeyAgreement(get()) }
 }

@@ -43,4 +43,25 @@ class CidTest {
         val cid = Cid.cidV1DagCbor(ByteArray(10))
         assertEquals(59, cid.length)
     }
+
+    // ---- raw-leaf CID (Part 3, blobs) -------------------------------------
+
+    @Test fun rawCid_starts_with_bafkrei_prefix() {
+        // raw multicodec is 0x55; bytes 0x01 0x55 0x12 base32-encode such that a
+        // raw CIDv1 begins "bafkrei" (distinct from dag-cbor's "bafyrei").
+        val cid = Cid.cidV1Raw(byteArrayOf(0x00))
+        assertTrue(cid.startsWith("bafkrei"), "cid was $cid")
+    }
+
+    @Test fun rawCid_is_deterministic_and_input_sensitive() {
+        assertEquals(Cid.cidV1Raw(byteArrayOf(1, 2, 3)), Cid.cidV1Raw(byteArrayOf(1, 2, 3)))
+        assertTrue(Cid.cidV1Raw(byteArrayOf(1, 2, 3)) != Cid.cidV1Raw(byteArrayOf(1, 2, 4)))
+    }
+
+    @Test fun rawCid_differs_from_dagCbor_forSameBytes() {
+        // Same content, different multicodec -> different CID. Prevents a blob CID
+        // from ever colliding with a dag-cbor record CID over the same bytes.
+        val bytes = byteArrayOf(9, 8, 7, 6)
+        assertTrue(Cid.cidV1Raw(bytes) != Cid.cidV1DagCbor(bytes))
+    }
 }

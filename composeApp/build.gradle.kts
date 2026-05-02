@@ -58,6 +58,7 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.essentyLifecycleCoroutines)
             implementation(libs.kotlinxDatetime)
+            implementation(libs.coil.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

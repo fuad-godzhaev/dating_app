@@ -49,6 +49,12 @@ actual class SecureKeyStorage(private val context: Context) {
         }
     }
 
+    actual suspend fun ecdh(peerPublicKey: ByteArray): ByteArray {
+        val d = loadScalar() ?: error("No keypair")
+        val peer = P256.decompress(peerPublicKey) ?: error("invalid peer public key")
+        return P256.to32(P256.scalarMult(d, peer).affineX)
+    }
+
     actual suspend fun deleteKeyPair() {
         keyStore().apply { if (containsAlias(WRAP_ALIAS)) deleteEntry(WRAP_ALIAS) }
         prefs.edit().clear().apply()

@@ -10,6 +10,8 @@ import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import fyp.project.datingapp.database.RepositoryManager
 import fyp.project.datingapp.p2p.feed.PeerProfileFeed
+import fyp.project.datingapp.p2p.relay.RelayPolicy
+import fyp.project.datingapp.p2p.relay.SessionInteractionTokens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -44,6 +46,8 @@ class DefaultHomeComponent(
     storeFactory: StoreFactory,
     repositoryManager: RepositoryManager,
     peerProfileFeed: PeerProfileFeed,
+    relayPolicy: RelayPolicy,
+    sessionTokens: SessionInteractionTokens,
     private val navigateToEditProfile: () -> Unit = {},
     private val navigateToMessages: () -> Unit = {},
 ) : HomeComponent, ComponentContext by componentContext {
@@ -54,6 +58,8 @@ class DefaultHomeComponent(
             database = object : HomeStoreFactory.Database {},
             repositoryManager = repositoryManager,
             peerProfileFeed = peerProfileFeed,
+            relayPolicy = relayPolicy,
+            sessionTokens = sessionTokens,
         ).provide()
     }
 

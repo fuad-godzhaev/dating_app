@@ -36,7 +36,9 @@ interface HomeStore: Store<Intent, State, HomeStore.Label>{
 
         sealed interface PictureState {
             data class Loading(val ref: String) : PictureState
-            data class Loaded(val ref: String) : PictureState
+            // filePath = the on-disk location of the fetched blob (Part 3); the
+            // card view decodes it lazily. ref is the blob CID, kept for keying.
+            data class Loaded(val ref: String, val filePath: String) : PictureState
         }
 
         data class MatchDialogState(

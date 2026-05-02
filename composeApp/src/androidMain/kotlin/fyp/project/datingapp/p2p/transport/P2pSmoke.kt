@@ -322,7 +322,6 @@ object P2pSmoke {
                     age = age,
                     interests = interests,
                     signingKey = identity.publicKey,
-                    signalPreKeyBundle = ByteArray(0),
                     createdAt = kotlin.time.Clock.System.now().toString(),
                 )
                 repositoryManager.putProfile(profile).getOrThrow()
@@ -360,7 +359,8 @@ object P2pSmoke {
             locator.setDebugGeohash(geohash)
             Log.i(TAG, "FEED starting (geohash=$geohash)")
             scope.launch {
-                feed.candidates().collect { profile ->
+                feed.candidates().collect { candidate ->
+                    val profile = candidate.profile
                     if (seen.add(profile.did)) {
                         Log.i(TAG, "FEED card did=${profile.did} name='${profile.displayName}' bio='${profile.bio}' age=${profile.age}")
                     }

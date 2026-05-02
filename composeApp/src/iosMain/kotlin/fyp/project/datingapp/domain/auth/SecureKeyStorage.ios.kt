@@ -40,6 +40,10 @@ actual class SecureKeyStorage {
         return sha256Digest(privateKey + data)
     }
 
+    // TODO(iOS): real P-256 ECDH (Secure Enclave / Security framework). Stubbed.
+    actual suspend fun ecdh(peerPublicKey: ByteArray): ByteArray =
+        throw UnsupportedOperationException("ECDH is not implemented on iOS yet")
+
     actual suspend fun deleteKeyPair() {
         defaults.removeObjectForKey(KEY_PRIVATE)
         defaults.removeObjectForKey(KEY_PUBLIC)

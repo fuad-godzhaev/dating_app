@@ -30,9 +30,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import fyp.project.datingapp.feature.home.HomeStore
 import fyp.project.datingapp.records.UserProfile
 
@@ -87,7 +89,7 @@ fun ProfileCardView(
                         CircularProgressIndicator()
                     }
                 }
-                is HomeStore.State.PictureState.Loaded -> PlaceholderPicture(ref = picture.ref)
+                is HomeStore.State.PictureState.Loaded -> BlobImage(filePath = picture.filePath)
             }
 
             // Dark vertical fade for text legibility.
@@ -167,6 +169,22 @@ fun ProfileCardView(
  * Also exposed as [PlaceholderBackdrop] for reuse by [NewMatchView],
  * which needs the same placeholder treatment at full-bleed dialog size.
  */
+/**
+ * Renders a fetched profile photo from its on-disk [filePath] (Part 3) with Coil 3,
+ * which handles async decode + memory/disk caching off the main thread. The card
+ * already shows a progress indicator during the preceding Loading state, so a brief
+ * blank here is acceptable while Coil decodes the (already-local) file.
+ */
+@Composable
+private fun BlobImage(filePath: String) {
+    AsyncImage(
+        model = "file://$filePath",
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
 @Composable
 private fun PlaceholderPicture(ref: String) = PlaceholderBackdrop(ref)
 

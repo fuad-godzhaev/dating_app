@@ -216,7 +216,6 @@ class DefaultSignUpComponent(
                 age = current.age,
                 interests = current.interests,
                 signingKey = identity.publicKey,
-                signalPreKeyBundle = ByteArray(0),
                 createdAt = Clock.System.now().toString()
             )
             repositoryManager.putProfile(profile)

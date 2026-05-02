@@ -16,8 +16,7 @@ data class UserProfile(
     val avatar: BlobRef? = null,
     val photos: List<BlobRef>? = null,
 
-    val signingKey: ByteArray, // public key for repo verification
-    val signalPreKeyBundle: ByteArray,
+    val signingKey: ByteArray, // public key for repo verification (also the ECIES key)
 
     val interests: List<String>,
     val location: Geolocation? = null,

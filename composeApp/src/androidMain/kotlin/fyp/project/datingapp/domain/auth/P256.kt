@@ -52,6 +52,19 @@ internal object P256 {
         return result ?: error("scalar is zero")
     }
 
+    /** R = d*P (arbitrary point), affine double-and-add. ECDH = d_self * Q_peer. */
+    fun scalarMult(d: BigInteger, point: ECPoint): ECPoint {
+        var result: ECPoint? = null // point at infinity
+        var addend = point
+        var k = d
+        while (k.signum() > 0) {
+            if (k.testBit(0)) result = add(result, addend)
+            addend = double(addend)
+            k = k.shiftRight(1)
+        }
+        return result ?: error("scalar is zero")
+    }
+
     /** SEC1 compressed point: 0x02/0x03 (y parity) + 32-byte big-endian X. */
     fun compress(point: ECPoint): ByteArray {
         val prefix = if (point.affineY.testBit(0)) 0x03 else 0x02

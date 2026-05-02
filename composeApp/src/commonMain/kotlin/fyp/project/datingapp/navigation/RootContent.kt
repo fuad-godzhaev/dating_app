@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import fyp.project.datingapp.feature.chat.ChatContent
+import fyp.project.datingapp.feature.chat.ConversationListContent
 import fyp.project.datingapp.feature.home.HomeContent
 import fyp.project.datingapp.feature.onboarding.signin.SignInContent
 import fyp.project.datingapp.feature.onboarding.signup.SignUpContent
@@ -41,6 +43,8 @@ fun RootContent(component: RootComponent) {
                 )
             }
             is RootComponent.Child.Home -> HomeContent(instance.component)
+            is RootComponent.Child.Messages -> ConversationListContent(instance.component)
+            is RootComponent.Child.Chat -> ChatContent(instance.component)
         }
     }
 }

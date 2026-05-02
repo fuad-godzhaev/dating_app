@@ -7,6 +7,7 @@ import fyp.project.datingapp.database.appView.dao.DiscoveryDao
 import fyp.project.datingapp.database.appView.dao.IncomingLikesDao
 import fyp.project.datingapp.database.appView.entities.ConversationEntity
 import fyp.project.datingapp.database.appView.entities.IncomingLikeEntity
+import fyp.project.datingapp.database.appView.entities.MessageEntity
 import fyp.project.datingapp.database.appView.entities.PeerProfileEntity
 import fyp.project.datingapp.database.pds.dao.BlobDao
 import fyp.project.datingapp.database.pds.dao.CommitDao
@@ -26,9 +27,10 @@ import kotlinx.coroutines.IO
         PeerProfileEntity::class,
         IncomingLikeEntity::class,
         ConversationEntity::class,
+        MessageEntity::class,
         AuthSettingsEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -41,6 +43,9 @@ import kotlinx.coroutines.IO
         // v4 adds the nullable `signature` column to `records` (per-record P-256
         // signature for standalone verification on fetch). Nullable ⇒ no spec.
         AutoMigration(from = 3, to = 4),
+        // v5 adds the new `messages` table (Part 5 / M3). A brand-new table needs
+        // no AutoMigrationSpec.
+        AutoMigration(from = 4, to = 5),
     ]
 )
 @ConstructedBy(AppDatabaseConstructor::class)

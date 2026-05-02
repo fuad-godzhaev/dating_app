@@ -23,6 +23,8 @@ import fyp.project.datingapp.p2p.discovery.PeerDirectory
 import fyp.project.datingapp.p2p.fetch.ProfileFetcher
 import fyp.project.datingapp.p2p.fetch.StreamProfileFetcher
 import fyp.project.datingapp.p2p.feed.PeerProfileFeed
+import fyp.project.datingapp.p2p.relay.RelayPolicy
+import fyp.project.datingapp.p2p.relay.SessionInteractionTokens
 import fyp.project.datingapp.p2p.transport.AndroidTransportEnv
 import fyp.project.datingapp.p2p.transport.Libp2pTransport
 import fyp.project.datingapp.p2p.transport.P2pSmoke
@@ -156,6 +158,10 @@ class MainActivity : ComponentActivity() {
             repositoryManager = koin.get<RepositoryManager>(),
             storeFactory = koin.get<StoreFactory>(),
             peerProfileFeed = koin.get<PeerProfileFeed>(),
+            relayPolicy = koin.get<RelayPolicy>(),
+            sessionTokens = koin.get<SessionInteractionTokens>(),
+            messageService = koin.get(),
+            messageDao = koin.get(),
         )
 
         setContent {

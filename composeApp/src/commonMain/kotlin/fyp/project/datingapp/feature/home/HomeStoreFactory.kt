@@ -9,6 +9,9 @@ import fyp.project.datingapp.feature.home.HomeStore.Intent
 import fyp.project.datingapp.feature.home.HomeStore.Label
 import fyp.project.datingapp.feature.home.HomeStore.State
 import fyp.project.datingapp.p2p.feed.PeerProfileFeed
+import fyp.project.datingapp.p2p.relay.RelayPolicy
+import fyp.project.datingapp.p2p.relay.SessionInteractionTokens
+import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
 import fyp.project.datingapp.records.Match
 import kotlinx.coroutines.launch
 
@@ -17,6 +20,8 @@ class HomeStoreFactory (
     private val database: Database,
     private val repositoryManager: RepositoryManager,
     private val peerProfileFeed: PeerProfileFeed,
+    private val relayPolicy: RelayPolicy,
+    private val sessionTokens: SessionInteractionTokens,
 ) {
 
     fun provide(): HomeStore =
@@ -31,7 +36,7 @@ class HomeStoreFactory (
         data object ProfilesLoading : Msg()
         data class ProfilesLoaded(val profiles: List<State.ProfileCardState>): Msg()
         data class ProfileArrived(val card: State.ProfileCardState): Msg()
-        data class PictureLoaded(val profileDid: String, val pictureRef: String) : Msg()
+        data class PictureLoaded(val profileDid: String, val pictureRef: String, val filePath: String) : Msg()
         data object TopCardRemoved: Msg()
         data class MatchOccured(
             val match: Match,
@@ -45,6 +50,11 @@ class HomeStoreFactory (
     }
 
     private inner class ExecutorImpl: CoroutineExecutor<Intent, Nothing, State, Msg, Label>() {
+
+        // Side-channel: the signed envelope each candidate was fetched from, keyed
+        // by DID. Lives on the executor (not in MVI State) so raw ByteArrays never
+        // enter the immutable state tree. Read by the relay-cache sighting hook.
+        private val envelopeByDid = mutableMapOf<String, SignedEnvelope>()
 
         override fun executeIntent(intent: Intent) {
             when (intent) {
@@ -67,9 +77,12 @@ class HomeStoreFactory (
                     // Real peer feed (Phase G.2): discover peers, fetch + verify each
                     // full profile, and append it as a card as it arrives. The flow is
                     // continuous (GossipSub-backed), so collection runs for the store's
-                    // lifetime. TODO(G.2 follow-up): photo-blob fetch + relay-cache
-                    //   sighting hook on Msg.PictureLoaded; client-side DiscoveryFilters.
-                    peerProfileFeed.candidates().collect { profile ->
+                    // lifetime. TODO(Part 3 blobs): photo-blob fetch on Msg.PictureLoaded;
+                    //   client-side DiscoveryFilters.
+                    peerProfileFeed.candidates().collect { candidate ->
+                        val profile = candidate.profile
+                        // Stash the envelope for the sighting hook (off the MVI state).
+                        envelopeByDid[profile.did] = candidate.envelope
                         val card = State.ProfileCardState(
                             profile = profile,
                             pictureBlobs = (profile.photos ?: emptyList()).map { blob ->
@@ -77,6 +90,12 @@ class HomeStoreFactory (
                             },
                         )
                         dispatch(Msg.ProfileArrived(card))
+                        recordSighting(profile.did)
+                        // Fetch each photo blob (Part 3); flips Loading -> Loaded as
+                        // bytes land. Per-photo so one slow blob doesn't block others.
+                        (profile.photos ?: emptyList()).forEach { blob ->
+                            scope.launch { loadPicture(profile.did, blob.ref) }
+                        }
                     }
                 } catch(e: Exception) {
                     val message = e.message ?: "Failed to load profiles"
@@ -85,12 +104,33 @@ class HomeStoreFactory (
                 }
             }
         }
+
+        /**
+         * Relay-cache sighting hook (`p2p-subsystem-design.md` §12.2). A card that
+         * reaches the Home feed is treated as "sighted": mint a one-shot session
+         * token and offer its signed envelope to [RelayPolicy]. The five defenses
+         * inside [RelayPolicy.put] decide what actually lands; this never throws.
+         *
+         * TODO(Part 3 blobs): move the call site to the per-card render / picture-
+         *   load path (Msg.PictureLoaded) so a sighting fires only when a card is
+         *   genuinely on screen, and kick off blob fetch from the same hook.
+         */
+        private suspend fun recordSighting(profileDid: String) {
+            val envelope = envelopeByDid[profileDid] ?: return
+            val token = sessionTokens.issue()
+            runCatching { relayPolicy.put(envelope, token) }
+        }
+
+        /**
+         * Fetch one photo blob by CID (Part 3) and, on success, flip its card slot
+         * Loading -> Loaded with the local file path. Failures (offline owner,
+         * integrity mismatch, iOS stub) leave the slot Loading -> the card view keeps
+         * showing the progress/placeholder. Never throws into the feed collector.
+         */
         private suspend fun loadPicture(profileDid: String, pictureRef: String) {
-            try {
-                //TODO: getPicture
-            } catch(_: Exception) {
-                //TODO: pictureFailed msg
-            }
+            val path = runCatching { peerProfileFeed.loadPhoto(profileDid, pictureRef) }.getOrNull()
+                ?: return
+            dispatch(Msg.PictureLoaded(profileDid, pictureRef, path))
         }
         private fun profileLiked(id: String) {}
         private fun profileSwiped(id: String) {}
@@ -121,7 +161,7 @@ class HomeStoreFactory (
                                                 if (pic is State.PictureState.Loading &&
                                                     pic.ref == msg.pictureRef
                                                     ) {
-                                                    State.PictureState.Loaded(msg.pictureRef)
+                                                    State.PictureState.Loaded(msg.pictureRef, msg.filePath)
                                                 } else pic
                                             }
                                         )

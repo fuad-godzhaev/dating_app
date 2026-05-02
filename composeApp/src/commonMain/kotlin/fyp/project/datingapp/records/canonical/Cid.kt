@@ -23,16 +23,29 @@ import fyp.project.datingapp.database.sha256Digest
 object Cid {
     private const val CID_VERSION_1: Byte = 0x01
     private const val MULTICODEC_DAG_CBOR: Byte = 0x71
+    private const val MULTICODEC_RAW: Byte = 0x55
     private const val MULTIHASH_SHA2_256: Byte = 0x12
     private const val SHA256_LEN: Byte = 0x20
 
     /** Compute the CIDv1 string for already-canonical DAG-CBOR bytes. */
-    fun cidV1DagCbor(canonicalCborBytes: ByteArray): String {
-        val digest = sha256Digest(canonicalCborBytes)
+    fun cidV1DagCbor(canonicalCborBytes: ByteArray): String =
+        cidV1(MULTICODEC_DAG_CBOR, canonicalCborBytes)
+
+    /**
+     * CIDv1 with the **raw** multicodec (0x55) for opaque binary (blobs / photos),
+     * sha2-256 multihash, base32-lower. A fetched blob is verified by recomputing
+     * this over its bytes and comparing to the [BlobRef.ref]. Raw CIDs render with
+     * the "bafkrei" prefix (0x01 0x55 0x12), distinct from dag-cbor's "bafyrei".
+     */
+    fun cidV1Raw(bytes: ByteArray): String =
+        cidV1(MULTICODEC_RAW, bytes)
+
+    private fun cidV1(multicodec: Byte, bytes: ByteArray): String {
+        val digest = sha256Digest(bytes)
         require(digest.size == 32) { "sha256 digest must be 32 bytes, got ${digest.size}" }
         val binary = ByteArray(4 + digest.size)
         binary[0] = CID_VERSION_1
-        binary[1] = MULTICODEC_DAG_CBOR
+        binary[1] = multicodec
         binary[2] = MULTIHASH_SHA2_256
         binary[3] = SHA256_LEN
         digest.copyInto(binary, destinationOffset = 4)

@@ -10,6 +10,9 @@ import fyp.project.datingapp.p2p.transport.wire.ProfileFetchRequest
 import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
 import fyp.project.datingapp.records.UserProfile
 import fyp.project.datingapp.records.canonical.decodeUserProfile
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.take
 
 /**
  * The four-step fetch cascade (`p2p-subsystem-design.md` §7.1). First success
@@ -31,6 +34,9 @@ class CascadingProfileFetcher(
     private val verifier: SignatureVerifier,
     private val clock: EpochClock = SystemClock,
     private val cacheTtlMs: Long = DEFAULT_CACHE_TTL_MS,
+    // Phase F: optional cacheHolder lookup (DHT provider records). Null in tests /
+    // early-phase builds, in which case step 4 is inert.
+    private val holderLocator: HolderLocator? = null,
 ) : ProfileFetcher {
 
     override suspend fun fetch(did: String, expectedCid: String?): UserProfile? =
@@ -62,9 +68,29 @@ class CascadingProfileFetcher(
             }
         }
 
-        // 4. cacheHolders fallback — TODO(Phase F): look up SignedCacheAttestation
-        // holders on the DHT and ask one. Inert until attestations are published.
+        // 4. cacheHolders fallback (Phase F): ask peers advertising via DHT provider
+        // records on cacheHolderKey(did). A holder can only withhold, not forge:
+        // every served envelope passes the owner-key verification gate. First
+        // verified hit wins; cap how many holders we try so a sparse DHT can't stall.
+        holderLocator?.let { locator ->
+            val fromHolder = locator.findHolders(did)
+                .take(MAX_HOLDER_ATTEMPTS)
+                .mapNotNull { holderPeerId -> tryHolder(holderPeerId, did, expectedCid) }
+                .firstOrNull()
+            if (fromHolder != null) return fromHolder
+        }
         return null
+    }
+
+    /** One cacheHolder round-trip: request, verify against the owner's key, cache. */
+    private suspend fun tryHolder(peerId: String, did: String, expectedCid: String?): SignedEnvelope? {
+        val response = runCatching {
+            streamClient.requestFromPeerId(peerId, ProfileFetchRequest(targetDid = did, ifNotCid = null))
+        }.getOrNull() ?: return null
+        val envelope = response.record ?: return null
+        if (!ProfileEnvelopeVerifier.verify(envelope, verifier, expectedCid)) return null
+        runCatching { cachePut(envelope) }
+        return envelope
     }
 
     private suspend fun cacheLookup(did: String, expectedCid: String?): SignedEnvelope? {
@@ -115,6 +141,10 @@ class CascadingProfileFetcher(
     companion object {
         /** Local fetch-cache freshness window (30 min). Beyond this, re-fetch. */
         const val DEFAULT_CACHE_TTL_MS: Long = 30L * 60 * 1000
+
+        /** Cap on cacheHolder round-trips per fetch (Phase F), so a sparse provider
+         *  set can't stall the cascade. First verified hit wins. */
+        private const val MAX_HOLDER_ATTEMPTS = 5
 
         // Collection/rkey for a profile record. Value is metadata only — the
         // verification gate keys off ownerDid + canonicalBytes, not these.

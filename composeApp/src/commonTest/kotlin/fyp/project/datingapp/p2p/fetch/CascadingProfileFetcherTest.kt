@@ -11,6 +11,8 @@ import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
 import fyp.project.datingapp.records.UserProfile
 import fyp.project.datingapp.records.canonical.Cid
 import fyp.project.datingapp.records.canonical.encodeCanonical
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -30,7 +32,6 @@ class CascadingProfileFetcherTest {
             bio = "hi",
             age = 30,
             signingKey = byteArrayOf(1, 2, 3),
-            signalPreKeyBundle = byteArrayOf(4, 5),
             interests = listOf("books"),
             createdAt = "2026-04-12T10:00:00Z",
         ),
@@ -48,12 +49,24 @@ class CascadingProfileFetcherTest {
 
     private val clock = EpochClock { 1_000_000L }
 
-    private class FakeStreamClient(var response: ProfileFetchResponse?) : ProfileStreamClient {
+    private class FakeStreamClient(
+        var response: ProfileFetchResponse?,
+        var holderResponse: ProfileFetchResponse? = null,
+    ) : ProfileStreamClient {
         var calls = 0
+        var holderCalls = 0
         override suspend fun request(contact: PeerContact, request: ProfileFetchRequest): ProfileFetchResponse? {
             calls++
             return response
         }
+        override suspend fun requestFromPeerId(peerId: String, request: ProfileFetchRequest): ProfileFetchResponse? {
+            holderCalls++
+            return holderResponse
+        }
+    }
+
+    private class FakeHolderLocator(private val peerIds: List<String>) : HolderLocator {
+        override fun findHolders(targetDid: String): Flow<String> = peerIds.asFlow()
     }
 
     private class FakeVerifier(var result: Boolean) : SignatureVerifier {
@@ -66,6 +79,7 @@ class CascadingProfileFetcherTest {
         client: ProfileStreamClient,
         verifier: SignatureVerifier,
         own: SignedEnvelope? = null,
+        holderLocator: HolderLocator? = null,
     ) = CascadingProfileFetcher(
         selfDid = { selfDid },
         ownEnvelope = { own },
@@ -74,6 +88,7 @@ class CascadingProfileFetcherTest {
         streamClient = client,
         verifier = verifier,
         clock = clock,
+        holderLocator = holderLocator,
     )
 
     @Test fun ownPds_returnsOwnEnvelopeWithoutNetwork() = runTest {
@@ -123,8 +138,42 @@ class CascadingProfileFetcherTest {
     @Test fun noPeerKnown_returnsNull() = runTest {
         val client = FakeStreamClient(ProfileFetchResponse(targetDid = ownerDid, record = goodEnvelope()))
         val f = fetcher(FakeDiscoveryDao(), PeerDirectory(), client, FakeVerifier(true))
-        // No PeerDirectory entry -> direct step skipped; holders stub -> null.
+        // No PeerDirectory entry and no holder locator -> both network steps skipped.
         assertNull(f.fetchSigned(ownerDid, expectedCid = profileCid))
         assertEquals(0, client.calls)
+    }
+
+    // --- Phase F: cacheHolder fallback (step 4) -----------------------------
+
+    @Test fun holderFallback_servesVerifiedEnvelopeWhenOwnerOffline() = runTest {
+        val dao = FakeDiscoveryDao()
+        // Owner offline: no PeerDirectory entry -> step 3 skipped, fall to holders.
+        val client = FakeStreamClient(
+            response = null,
+            holderResponse = ProfileFetchResponse(targetDid = ownerDid, record = goodEnvelope()),
+        )
+        val locator = FakeHolderLocator(listOf("12D3KooWholder"))
+        val f = fetcher(dao, PeerDirectory(), client, FakeVerifier(true), holderLocator = locator)
+
+        val got = f.fetchSigned(ownerDid, expectedCid = profileCid)
+        assertEquals(profileCid, got?.cid)
+        assertEquals(0, client.calls, "owner direct step must be skipped")
+        assertEquals(1, client.holderCalls, "first verified holder hit wins")
+        assertTrue(dao.getProfileByDid(ownerDid) != null, "holder hit must be cached")
+    }
+
+    @Test fun holderFallback_rejectsForgedEnvelopeAndDoesNotCache() = runTest {
+        val dao = FakeDiscoveryDao()
+        val client = FakeStreamClient(
+            response = null,
+            holderResponse = ProfileFetchResponse(targetDid = ownerDid, record = goodEnvelope()),
+        )
+        val locator = FakeHolderLocator(listOf("12D3KooWholder1", "12D3KooWholder2"))
+        val f = fetcher(dao, PeerDirectory(), client, FakeVerifier(false), holderLocator = locator)
+
+        // Verifier rejects every holder's envelope -> no result, nothing cached.
+        assertNull(f.fetchSigned(ownerDid, expectedCid = profileCid))
+        assertNull(dao.getProfileByDid(ownerDid))
+        assertEquals(2, client.holderCalls, "both holders tried before giving up")
     }
 }

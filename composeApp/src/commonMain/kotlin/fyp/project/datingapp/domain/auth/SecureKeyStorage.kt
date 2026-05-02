@@ -22,6 +22,13 @@ expect class SecureKeyStorage {
     /** 33-byte compressed P-256 point of the signing key (did:key / verify need this). */
     fun getPublicKey(): ByteArray?
     suspend fun sign(data: ByteArray): ByteArray
+    /**
+     * ECDH with the stored P-256 signing key: returns the 32-byte X coordinate of
+     * `d_self * Q_peer`, where [peerPublicKey] is a 33-byte compressed point. The
+     * shared secret for the recipient side of ECIES message decryption (Part 5); the
+     * signing key is reused for key agreement (pragmatic - see ARCHITECTURE.md).
+     */
+    suspend fun ecdh(peerPublicKey: ByteArray): ByteArray
     suspend fun deleteKeyPair()
     /** Raw 32-byte Ed25519 transport seed (libp2p identity); created on first use. */
     fun getOrCreateTransportSeed(): ByteArray

@@ -1,14 +1,22 @@
 package fyp.project.datingapp.p2p.feed
 
+import fyp.project.datingapp.p2p.blob.BlobFetcher
+import fyp.project.datingapp.p2p.blob.StreamBlobFetcher
 import fyp.project.datingapp.p2p.discovery.DiscoveryFilters
 import fyp.project.datingapp.p2p.discovery.DiscoveryService
 import fyp.project.datingapp.p2p.fetch.ProfileFetcher
 import fyp.project.datingapp.p2p.fetch.StreamProfileFetcher
+import fyp.project.datingapp.p2p.messaging.MailboxService
+import fyp.project.datingapp.p2p.messaging.MailboxStreamServer
+import fyp.project.datingapp.p2p.messaging.MessageStreamServer
 import fyp.project.datingapp.p2p.transport.Libp2pTransport
+import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
 import fyp.project.datingapp.records.UserProfile
+import fyp.project.datingapp.records.canonical.decodeUserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -36,6 +44,11 @@ class PeerProfileFeed(
     private val fetcher: ProfileFetcher,
     private val streamServer: StreamProfileFetcher,
     private val lanBootstrap: LanBootstrap,
+    private val blobFetcher: BlobFetcher,
+    private val blobServer: StreamBlobFetcher,
+    private val messageServer: MessageStreamServer,
+    private val mailboxServer: MailboxStreamServer,
+    private val mailboxService: MailboxService,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val startMutex = Mutex()
@@ -47,33 +60,75 @@ class PeerProfileFeed(
             if (started) return
             transport.start()
             streamServer.register(transport)
+            blobServer.register(transport)
+            messageServer.register(transport)
+            mailboxServer.register(transport)
             lanBootstrap.start()
             discovery.announceSelf(scope)
             started = true
+        }
+        // Collect any mail parked while we were offline (M5). Best-effort, off the
+        // start lock so a slow DHT lookup doesn't block the feed coming up.
+        scope.launch { runCatching { mailboxService.pullOwnMail() } }
+    }
+
+    /**
+     * Resolve a profile photo by its raw-leaf CID to a local file path, fetching
+     * from [profileDid]'s owner over `/datingapp/blob/1.0.0` if not already cached.
+     * Null if it can't be resolved (offline owner, integrity failure, iOS stub).
+     */
+    suspend fun loadPhoto(profileDid: String, blobCid: String): String? =
+        blobFetcher.fetch(profileDid, blobCid)
+
+    /**
+     * Tear down the feed lifecycle (Part 4 §C): stop the presence heartbeat, the LAN
+     * bootstrap, and the libp2p host, and cancel in-flight candidate/fetch work.
+     * Idempotent and safe to call from a sign-out path. After [stop], a later
+     * [ensureStarted] brings everything back up (the scope is reused, not killed).
+     *
+     * Note: the GossipSub invalidator owns a separate DI-created scope; its
+     * subscription collectors unwind on their own when [transport] stops (their
+     * flows error and are runCatching-swallowed). Fully cancelling that scope on
+     * sign-out is a follow-up tied to the DI-owned lifecycle.
+     */
+    suspend fun stop() {
+        startMutex.withLock {
+            if (!started) return
+            discovery.stopAnnouncing()
+            lanBootstrap.stop()
+            runCatching { transport.stop() }
+            scope.coroutineContext.cancelChildren()
+            started = false
         }
     }
 
     /**
      * Verified peer profiles for the feed: each discovered [PresenceRecord] is
-     * resolved to a full [UserProfile] via the fetch cascade. Cold flow; calling
-     * [ensureStarted] first so collection always has a running host.
+     * resolved via the fetch cascade to a [FeedCandidate] carrying both the
+     * decoded [UserProfile] and the signed envelope it came from. The envelope
+     * is surfaced (not just the profile) so the Home sighting hook can hand it
+     * to the relay cache without re-fetching. Cold flow; [ensureStarted] runs
+     * first so collection always has a running host.
      */
-    fun candidates(filters: DiscoveryFilters = DiscoveryFilters()): Flow<UserProfile> = channelFlow {
+    fun candidates(filters: DiscoveryFilters = DiscoveryFilters()): Flow<FeedCandidate> = channelFlow {
         ensureStarted()
         discovery.candidates(filters).collect { presence ->
             launch {
-                fetchWithRetry(presence.did, presence.profileCid)?.let { trySend(it) }
+                val envelope = fetchSignedWithRetry(presence.did, presence.profileCid) ?: return@launch
+                val profile = runCatching { decodeUserProfile(envelope.canonicalBytes) }.getOrNull()
+                    ?: return@launch
+                trySend(FeedCandidate(profile, envelope))
             }
         }
     }
 
-    private suspend fun fetchWithRetry(
+    private suspend fun fetchSignedWithRetry(
         did: String,
         expectedCid: String,
         attempts: Int = FETCH_ATTEMPTS,
-    ): UserProfile? {
+    ): SignedEnvelope? {
         repeat(attempts) {
-            runCatching { fetcher.fetch(did, expectedCid) }.getOrNull()?.let { return it }
+            runCatching { fetcher.fetchSigned(did, expectedCid) }.getOrNull()?.let { return it }
             delay(FETCH_RETRY_MS)
         }
         return null
@@ -85,3 +140,14 @@ class PeerProfileFeed(
         private const val FETCH_RETRY_MS = 3000L
     }
 }
+
+/**
+ * A discovered peer resolved to a verified profile plus the [SignedEnvelope] it
+ * was fetched from. The envelope is the byte-exact, owner-signed record; the
+ * Home relay-cache sighting hook feeds it to `RelayPolicy.put` so this device
+ * can later serve it as a cacheHolder (Phase F) without re-fetching.
+ */
+data class FeedCandidate(
+    val profile: UserProfile,
+    val envelope: SignedEnvelope,
+)

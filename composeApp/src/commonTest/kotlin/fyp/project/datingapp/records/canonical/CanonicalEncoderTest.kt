@@ -167,7 +167,6 @@ class CanonicalEncoderTest {
             avatar = null,
             photos = null,
             signingKey = byteArrayOf(1, 2, 3),
-            signalPreKeyBundle = byteArrayOf(9, 8, 7),
             interests = listOf("books", "climbing"),
             location = null,
             createdAt = "2025-01-01T00:00:00Z",

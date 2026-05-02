@@ -2,7 +2,9 @@ package fyp.project.datingapp.p2p.relay
 
 import fyp.project.datingapp.database.appView.dao.DiscoveryDao
 import fyp.project.datingapp.database.appView.entities.PeerProfileEntity
+import fyp.project.datingapp.p2p.transport.wire.ProfileInvalidation
 import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
+import fyp.project.datingapp.records.canonical.Cid
 
 /**
  * Orchestrates the five defenses that gate relay-cache ingestion, decoding
@@ -29,7 +31,7 @@ import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
  * codes gains no information).
  */
 class RelayPolicy(
-    private val selfDid: String,
+    private val selfDid: suspend () -> String?,
     private val discoveryDao: DiscoveryDao,
     private val rateLimiter: IngestRateLimiter,
     private val sessionTokens: SessionInteractionTokens,
@@ -37,8 +39,14 @@ class RelayPolicy(
     private val encryption: CacheCipher,
     private val clock: EpochClock = SystemClock,
     private val ttlMs: Long = DEFAULT_TTL_MS,
-    @Suppress("unused") // Phase E hook; held to document the wiring site.
-    private val invalidator: GossipSubInvalidator? = null,
+    // Phase E: a lazy provider (not a direct reference) breaks the RelayPolicy
+    // <-> DefaultGossipSubInvalidator construction cycle in the DI graph. Default
+    // returns null so tests / early-phase builds construct a policy with no
+    // transport stack.
+    private val invalidator: () -> GossipSubInvalidator? = { null },
+    // Phase F: lazy provider for the cacheHolder advertiser (DHT provider record on
+    // cache). Lazy keeps RelayPolicy transport-free at construction; null in tests.
+    private val advertiser: () -> CacheHolderAdvertiser? = { null },
 ) {
 
     /**
@@ -48,7 +56,7 @@ class RelayPolicy(
      */
     suspend fun put(envelope: SignedEnvelope, sessionToken: String?): Boolean {
         // 1. Non-self.
-        if (envelope.ownerDid == selfDid) return false
+        if (envelope.ownerDid == selfDid()) return false
 
         // 2. Rate limit. Checked before the session-token consume so replayed
         // tokens under a rate storm don't each burn a token-map entry.
@@ -66,6 +74,8 @@ class RelayPolicy(
             val toEvict = (currentCount - capacity + 1).coerceAtLeast(1)
             discoveryDao.pickOldestByLastServed(toEvict).forEach { victimDid ->
                 discoveryDao.deleteByDid(victimDid)
+                // Stop tracking invalidations for a row we no longer hold.
+                invalidator()?.unsubscribe(victimDid)
             }
         }
 
@@ -90,6 +100,13 @@ class RelayPolicy(
             sessionInteractionToken = sessionToken,
         )
         discoveryDao.upsertProfile(row)
+        // Phase E: track this owner's invalidation topic so a later profile update
+        // refreshes the cached row without a re-fetch. Idempotent in the invalidator.
+        invalidator()?.subscribe(envelope.ownerDid)
+        // Phase F: advertise (DHT provider record) that this device now serves this
+        // owner's profile, so offline-owner fetches can fall back to us. Best-effort:
+        // a not-yet-ready DHT just means no provider record this round.
+        runCatching { advertiser()?.advertise(envelope.ownerDid) }
         return true
     }
 
@@ -146,11 +163,54 @@ class RelayPolicy(
     }
 
     /**
-     * Invalidation hook. Phase E's [GossipSubInvalidator] calls this after
-     * verifying the push's signature. Phase A tests call it directly.
+     * Drop hook: delete the cached row for [ownerDid] and stop tracking its
+     * invalidation topic. Used when an invalidation says "this record is gone"
+     * rather than "here is the new version" (see [onInvalidationReplace]).
+     * Phase A tests call it directly.
      */
     suspend fun onInvalidation(ownerDid: String) {
         discoveryDao.deleteByDid(ownerDid)
+        invalidator()?.unsubscribe(ownerDid)
+    }
+
+    /**
+     * Replace hook (Phase E, `p2p-subsystem-design.md` §8.4). Called by
+     * [GossipSubInvalidator] after it has verified the push against the owner's
+     * key. Swaps the cached envelope for the new version *in place*, re-sealing
+     * the carried [ProfileInvalidation.canonicalBytes] under a fresh AEAD nonce
+     * and resetting the TTL — no pull round-trip.
+     *
+     * Returns true only when a row was actually replaced. No-ops (return false) if:
+     *   - we don't relay-cache this owner (or the row isn't relay-cached),
+     *   - the carried bytes don't hash to the claimed CID (integrity guard),
+     *   - we already hold this exact version (same CID) — avoids reseal churn.
+     *
+     * The caller ([GossipSubInvalidator]) is responsible for signature
+     * verification; this method trusts a verified invalidation, mirroring how
+     * [put] trusts an already-verified envelope from the fetch gate.
+     */
+    suspend fun onInvalidationReplace(invalidation: ProfileInvalidation): Boolean {
+        val existing = discoveryDao.getProfileByDid(invalidation.ownerDid) ?: return false
+        if (existing.cachedAt == null) return false
+        if (Cid.cidV1DagCbor(invalidation.canonicalBytes) != invalidation.cid) return false
+        if (existing.profileCid == invalidation.cid) return false
+
+        val aad = relayAad(invalidation.ownerDid, invalidation.cid)
+        val sealed = encryption.seal(invalidation.canonicalBytes, aad)
+        val now = clock.nowMs()
+        discoveryDao.upsertProfile(
+            existing.copy(
+                profileCid = invalidation.cid,
+                commitCid = invalidation.cid,
+                commitSignature = invalidation.signature,
+                bodyCiphertext = sealed.ciphertext,
+                bodyNonce = sealed.nonce,
+                lastUpdatedAt = now,
+                lastServedAt = now,
+                expiresAt = now + ttlMs,
+            ),
+        )
+        return true
     }
 
     private fun skeletonRow(envelope: SignedEnvelope, now: Long): PeerProfileEntity =

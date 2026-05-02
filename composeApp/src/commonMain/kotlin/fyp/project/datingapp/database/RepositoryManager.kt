@@ -5,6 +5,8 @@ import fyp.project.datingapp.DataValidatorResult
 import fyp.project.datingapp.database.pds.entities.CommitEntity
 import fyp.project.datingapp.database.pds.entities.RecordEntity
 import fyp.project.datingapp.domain.auth.AuthRepository
+import fyp.project.datingapp.p2p.relay.GossipSubInvalidator
+import fyp.project.datingapp.p2p.transport.wire.ProfileInvalidation
 import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
 import fyp.project.datingapp.records.UserProfile
 import fyp.project.datingapp.records.canonical.CanonicalEncoder
@@ -20,6 +22,10 @@ import kotlin.time.Instant
 class RepositoryManager(
     private val db: AppDatabase,
     private val authRepository: AuthRepository,
+    // Phase E: nullable seam so the DB layer can announce a profile update over
+    // GossipSub without a hard transport dependency (and so tests construct a
+    // manager with no networking). Injected lazily via Koin getOrNull().
+    private val invalidator: GossipSubInvalidator? = null,
 ) {
 
     // Records are canonical DAG-CBOR on the wire and at rest; see
@@ -37,6 +43,9 @@ class RepositoryManager(
 
     //Create or update User Profile
     suspend fun putProfile(profile: UserProfile): Result<Unit> {
+        // Messaging E2EE (ECIES) seals to the recipient's DID key directly, so the
+        // profile carries no separate encryption prekey bundle.
+
         // Step 1: Validate against Lexicon schema
         val validation = DataValidator.validate(profile)
         if (validation is DataValidatorResult.Invalid) {
@@ -71,6 +80,28 @@ class RepositoryManager(
 
         // Step 5: Update the signed commit
         updateCommit()
+
+        // Step 6 (Phase E): announce the new version on this DID's invalidation
+        // topic so peers caching an older copy refresh in place instead of waiting
+        // out the TTL. Best-effort: a null invalidator (tests / no transport) or a
+        // missing identity is a silent no-op. The invalidation reuses the record's
+        // own CID + per-record signature, so a holder can serve the replacement
+        // with a signature that still verifies.
+        invalidator?.let { inv ->
+            val did = authRepository.getDid()
+            if (did != null) {
+                val invalidation = ProfileInvalidation(
+                    ownerDid = did,
+                    collection = Collections.PROFILE,
+                    rkey = "self",
+                    cid = cid,
+                    canonicalBytes = recordBytes,
+                    signature = recordSignature,
+                    publishedAt = timeZoneNow().toString(),
+                )
+                runCatching { inv.publish(invalidation) }
+            }
+        }
 
         return Result.success(Unit)
     }

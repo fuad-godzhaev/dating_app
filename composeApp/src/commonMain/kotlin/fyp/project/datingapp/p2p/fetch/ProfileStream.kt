@@ -18,7 +18,15 @@ const val PROFILE_PROTOCOL_ID: String = "/datingapp/profile/1.0.0"
  * without the (expect-class, un-fakeable) [Libp2pTransport].
  */
 interface ProfileStreamClient {
+    /** Request from a known [PeerContact] (owner, learned from discovery). */
     suspend fun request(contact: PeerContact, request: ProfileFetchRequest): ProfileFetchResponse?
+
+    /**
+     * Request from a bare peerId (a cacheHolder learned from DHT provider records,
+     * Phase F). No multiaddr is supplied: `dhtFindProviders` already seeded the
+     * peerstore with the holder's addrs, so `openStream` can auto-dial.
+     */
+    suspend fun requestFromPeerId(peerId: String, request: ProfileFetchRequest): ProfileFetchResponse?
 }
 
 /** Real client over the go-libp2p host. */
@@ -27,7 +35,14 @@ class Libp2pProfileStreamClient(private val transport: Libp2pTransport) : Profil
         // Best-effort dial via the advertised multiaddr (no-op if already connected),
         // then open the stream by peerId.
         contact.multiaddrs.firstOrNull()?.let { runCatching { transport.connect(it) } }
-        val stream = transport.openStream(contact.peerId, PROFILE_PROTOCOL_ID)
+        return roundTrip(contact.peerId, request)
+    }
+
+    override suspend fun requestFromPeerId(peerId: String, request: ProfileFetchRequest): ProfileFetchResponse? =
+        roundTrip(peerId, request)
+
+    private suspend fun roundTrip(peerId: String, request: ProfileFetchRequest): ProfileFetchResponse? {
+        val stream = transport.openStream(peerId, PROFILE_PROTOCOL_ID)
         return try {
             stream.writeFrame(encodeProfileFetchRequest(request))
             decodeProfileFetchResponse(stream.readFrame())

@@ -1,9 +1,15 @@
 package fyp.project.datingapp.records.canonical
 
 import fyp.project.datingapp.p2p.transport.wire.AgeRange
+import fyp.project.datingapp.p2p.transport.wire.BlobFetchRequest
+import fyp.project.datingapp.p2p.transport.wire.BlobFetchResponse
+import fyp.project.datingapp.p2p.transport.wire.MailboxRequest
+import fyp.project.datingapp.p2p.transport.wire.MailboxResponse
+import fyp.project.datingapp.p2p.transport.wire.MessageEnvelope
 import fyp.project.datingapp.p2p.transport.wire.PresenceRecord
 import fyp.project.datingapp.p2p.transport.wire.ProfileFetchRequest
 import fyp.project.datingapp.p2p.transport.wire.ProfileFetchResponse
+import fyp.project.datingapp.p2p.transport.wire.ProfileInvalidation
 import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
 import fyp.project.datingapp.records.BlobRef
 import fyp.project.datingapp.records.Geolocation
@@ -39,7 +45,6 @@ fun UserProfile.toCborValue(): CborValue = CborValue.CMap(buildMap {
     avatar?.let { put("avatar", it.toCborValue()) }
     photos?.let { put("photos", CborValue.CArray(it.map { p -> p.toCborValue() })) }
     put("signingKey", CborValue.CBytes(signingKey))
-    put("signalPreKeyBundle", CborValue.CBytes(signalPreKeyBundle))
     put("interests", CborValue.CArray(interests.map { CborValue.CString(it) }))
     location?.let { put("location", it.toCborValue()) }
     put("createdAt", CborValue.CString(createdAt))
@@ -153,7 +158,6 @@ fun decodeUserProfile(bytes: ByteArray): UserProfile {
         avatar = m["avatar"]?.let(::blobRefFrom),
         photos = m["photos"]?.asArray()?.map(::blobRefFrom),
         signingKey = m.getValue("signingKey").asBytes(),
-        signalPreKeyBundle = m.getValue("signalPreKeyBundle").asBytes(),
         interests = m.getValue("interests").asArray().map { it.asString() },
         location = m["location"]?.let(::geoFrom),
         createdAt = m.getValue("createdAt").asString(),
@@ -250,6 +254,174 @@ fun decodeProfileFetchResponse(bytes: ByteArray): ProfileFetchResponse {
         record = m["record"]?.let(::signedEnvelopeFrom),
         cidMatch = (m["cidMatch"] as? CborValue.CBool)?.v ?: false,
         error = (m["error"] as? CborValue.CString)?.v,
+    )
+}
+
+// ---- mailbox wire (Part 5 / M5, /datingapp/mailbox/1.0.0) -------------------
+// Envelopes are embedded as their full wire bytes (CBytes), reusing the
+// MessageEnvelope codec, so the holder carries them verbatim (ciphertext intact).
+
+fun encodeMailboxRequest(request: MailboxRequest): ByteArray =
+    CanonicalEncoder.encode(
+        CborValue.CMap(buildMap {
+            put("\$type", CborValue.CString(request.type))
+            put("op", CborValue.CString(request.op))
+            put("recipientDid", CborValue.CString(request.recipientDid))
+            request.envelope?.let { put("envelope", CborValue.CBytes(encodeMessageEnvelopeWire(it))) }
+        }),
+    )
+
+fun decodeMailboxRequest(bytes: ByteArray): MailboxRequest {
+    val m = CanonicalDecoder.decode(bytes).asMap()
+    return MailboxRequest(
+        type = m["\$type"]?.asString() ?: "fyp.project.datingapp.p2p.mailboxRequest",
+        op = m.getValue("op").asString(),
+        recipientDid = m.getValue("recipientDid").asString(),
+        envelope = (m["envelope"] as? CborValue.CBytes)?.v?.let { decodeMessageEnvelope(it) },
+    )
+}
+
+fun encodeMailboxResponse(response: MailboxResponse): ByteArray =
+    CanonicalEncoder.encode(
+        CborValue.CMap(buildMap {
+            put("\$type", CborValue.CString(response.type))
+            put("ok", CborValue.CBool(response.ok))
+            put("envelopes", CborValue.CArray(response.envelopes.map { CborValue.CBytes(encodeMessageEnvelopeWire(it)) }))
+            response.error?.let { put("error", CborValue.CString(it)) }
+        }),
+    )
+
+fun decodeMailboxResponse(bytes: ByteArray): MailboxResponse {
+    val m = CanonicalDecoder.decode(bytes).asMap()
+    return MailboxResponse(
+        type = m["\$type"]?.asString() ?: "fyp.project.datingapp.p2p.mailboxResponse",
+        ok = (m["ok"] as? CborValue.CBool)?.v ?: false,
+        envelopes = (m["envelopes"] as? CborValue.CArray)?.v
+            ?.mapNotNull { (it as? CborValue.CBytes)?.v?.let(::decodeMessageEnvelope) }
+            ?: emptyList(),
+        error = (m["error"] as? CborValue.CString)?.v,
+    )
+}
+
+// ---- message envelope wire (Part 5, /datingapp/message|mailbox/1.0.0) -------
+// The signature is the SENDER's P-256 signature over the signable projection
+// (every field except `signature`), mirroring PresenceRecord. `ciphertext` is the
+// opaque ECIES payload (eph pubkey || nonce || AES-GCM), round-trips verbatim.
+
+fun MessageEnvelope.toSignableCborValue(): CborValue = CborValue.CMap(buildMap {
+    put("\$type", CborValue.CString(type))
+    put("senderDid", CborValue.CString(senderDid))
+    put("recipientDid", CborValue.CString(recipientDid))
+    put("msgId", CborValue.CString(msgId))
+    put("ciphertext", CborValue.CBytes(ciphertext))
+    put("messageType", CborValue.CInt(messageType.toLong()))
+    put("sentAt", CborValue.CString(sentAt))
+})
+
+/** Signable bytes (no signature) — what the sender signs and a verifier re-derives. */
+fun encodeCanonical(envelope: MessageEnvelope): ByteArray =
+    CanonicalEncoder.encode(envelope.toSignableCborValue())
+
+/** Full wire payload (signable projection + signature). */
+fun encodeMessageEnvelopeWire(envelope: MessageEnvelope): ByteArray {
+    val signable = (envelope.toSignableCborValue() as CborValue.CMap).v
+    val withSig = buildMap<String, CborValue> {
+        putAll(signable)
+        put("signature", CborValue.CBytes(envelope.signature))
+    }
+    return CanonicalEncoder.encode(CborValue.CMap(withSig))
+}
+
+fun decodeMessageEnvelope(bytes: ByteArray): MessageEnvelope {
+    val m = CanonicalDecoder.decode(bytes).asMap()
+    return MessageEnvelope(
+        type = m["\$type"]?.asString() ?: "fyp.project.datingapp.p2p.message",
+        senderDid = m.getValue("senderDid").asString(),
+        recipientDid = m.getValue("recipientDid").asString(),
+        msgId = m.getValue("msgId").asString(),
+        ciphertext = m.getValue("ciphertext").asBytes(),
+        messageType = m.getValue("messageType").asInt(),
+        sentAt = m.getValue("sentAt").asString(),
+        signature = m["signature"]?.asBytes() ?: ByteArray(0),
+    )
+}
+
+// ---- blob fetch wire (Part 3, /datingapp/blob/1.0.0) ------------------------
+// Stream control messages for binary blobs. Integrity is the raw-leaf CID
+// (Cid.cidV1Raw), not a signature; `bytes` round-trips verbatim as a CBOR byte
+// string. A photo can approach the 2 MB DataValidator cap, so the blob stream
+// reads with a larger frame bound than the 1 MiB profile default.
+
+fun BlobFetchRequest.toCborValue(): CborValue = CborValue.CMap(buildMap {
+    put("\$type", CborValue.CString(type))
+    put("cid", CborValue.CString(cid))
+})
+
+fun BlobFetchResponse.toCborValue(): CborValue = CborValue.CMap(buildMap {
+    put("\$type", CborValue.CString(type))
+    put("cid", CborValue.CString(cid))
+    bytes?.let { put("bytes", CborValue.CBytes(it)) }
+    mimeType?.let { put("mimeType", CborValue.CString(it)) }
+    error?.let { put("error", CborValue.CString(it)) }
+})
+
+fun encodeBlobFetchRequest(request: BlobFetchRequest): ByteArray =
+    CanonicalEncoder.encode(request.toCborValue())
+
+fun encodeBlobFetchResponse(response: BlobFetchResponse): ByteArray =
+    CanonicalEncoder.encode(response.toCborValue())
+
+fun decodeBlobFetchRequest(bytes: ByteArray): BlobFetchRequest {
+    val m = CanonicalDecoder.decode(bytes).asMap()
+    return BlobFetchRequest(
+        type = m["\$type"]?.asString() ?: "fyp.project.datingapp.p2p.blobRequest",
+        cid = m.getValue("cid").asString(),
+    )
+}
+
+fun decodeBlobFetchResponse(bytes: ByteArray): BlobFetchResponse {
+    val m = CanonicalDecoder.decode(bytes).asMap()
+    return BlobFetchResponse(
+        type = m["\$type"]?.asString() ?: "fyp.project.datingapp.p2p.blobResponse",
+        cid = m.getValue("cid").asString(),
+        bytes = (m["bytes"] as? CborValue.CBytes)?.v,
+        mimeType = (m["mimeType"] as? CborValue.CString)?.v,
+        error = (m["error"] as? CborValue.CString)?.v,
+    )
+}
+
+// ---- invalidation wire (Phase E, fyp.project.datingapp.invalidate/v1/<did>) --
+// A ProfileInvalidation is, on the wire, an out-of-band SignedEnvelope plus a
+// publish timestamp. Its `signature` is the owner's per-record P-256 signature
+// over `canonicalBytes` (the same value the profile RecordEntity carries), so a
+// holder both authenticates the push and can serve the replaced envelope with a
+// signature that still verifies. `canonicalBytes` round-trips verbatim (§10).
+
+fun ProfileInvalidation.toCborValue(): CborValue = CborValue.CMap(buildMap {
+    put("\$type", CborValue.CString(type))
+    put("ownerDid", CborValue.CString(ownerDid))
+    put("collection", CborValue.CString(collection))
+    put("rkey", CborValue.CString(rkey))
+    put("cid", CborValue.CString(cid))
+    put("canonicalBytes", CborValue.CBytes(canonicalBytes))
+    put("signature", CborValue.CBytes(signature))
+    put("publishedAt", CborValue.CString(publishedAt))
+})
+
+fun encodeInvalidationWire(invalidation: ProfileInvalidation): ByteArray =
+    CanonicalEncoder.encode(invalidation.toCborValue())
+
+fun decodeProfileInvalidation(bytes: ByteArray): ProfileInvalidation {
+    val m = CanonicalDecoder.decode(bytes).asMap()
+    return ProfileInvalidation(
+        type = m["\$type"]?.asString() ?: "fyp.project.datingapp.p2p.invalidate",
+        ownerDid = m.getValue("ownerDid").asString(),
+        collection = m.getValue("collection").asString(),
+        rkey = m.getValue("rkey").asString(),
+        cid = m.getValue("cid").asString(),
+        canonicalBytes = m.getValue("canonicalBytes").asBytes(),
+        signature = m.getValue("signature").asBytes(),
+        publishedAt = m.getValue("publishedAt").asString(),
     )
 }
 
