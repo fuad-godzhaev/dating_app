@@ -5,8 +5,10 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import fyp.project.datingapp.database.appView.dao.MessageDao
 import fyp.project.datingapp.database.appView.dao.DiscoveryDao
 import fyp.project.datingapp.database.appView.dao.IncomingLikesDao
+import fyp.project.datingapp.database.appView.dao.MailboxDao
 import fyp.project.datingapp.database.appView.entities.ConversationEntity
 import fyp.project.datingapp.database.appView.entities.IncomingLikeEntity
+import fyp.project.datingapp.database.appView.entities.MailboxEntity
 import fyp.project.datingapp.database.appView.entities.MessageEntity
 import fyp.project.datingapp.database.appView.entities.PeerProfileEntity
 import fyp.project.datingapp.database.pds.dao.BlobDao
@@ -28,9 +30,10 @@ import kotlinx.coroutines.IO
         IncomingLikeEntity::class,
         ConversationEntity::class,
         MessageEntity::class,
+        MailboxEntity::class,
         AuthSettingsEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -46,6 +49,9 @@ import kotlinx.coroutines.IO
         // v5 adds the new `messages` table (Part 5 / M3). A brand-new table needs
         // no AutoMigrationSpec.
         AutoMigration(from = 4, to = 5),
+        // v6 adds the new `mailbox` table (M5 persistence): cacheHolders now store
+        // queued mail durably so it survives a restart. Brand-new table ⇒ no spec.
+        AutoMigration(from = 5, to = 6),
     ]
 )
 @ConstructedBy(AppDatabaseConstructor::class)
@@ -59,6 +65,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun discoveryDao(): DiscoveryDao
     abstract fun incomingLikeDao(): IncomingLikesDao
     abstract fun conversationDao(): MessageDao
+    abstract fun mailboxDao(): MailboxDao
 }
 
 @Suppress("KotlinNoActualForExpect")

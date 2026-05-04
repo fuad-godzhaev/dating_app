@@ -1,62 +1,81 @@
 package fyp.project.datingapp.p2p.messaging
 
+import fyp.project.datingapp.database.appView.dao.MailboxDao
+import fyp.project.datingapp.database.appView.entities.MailboxEntity
+import fyp.project.datingapp.p2p.relay.CacheCipher
 import fyp.project.datingapp.p2p.relay.EpochClock
 import fyp.project.datingapp.p2p.relay.SystemClock
 import fyp.project.datingapp.p2p.transport.wire.MessageEnvelope
+import fyp.project.datingapp.records.canonical.decodeMessageEnvelope
+import fyp.project.datingapp.records.canonical.encodeMessageEnvelopeWire
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * In-memory store-and-forward mailbox a cacheHolder runs for offline recipients
- * (ADR-0001 / M5, relay-architecture §9). Holds sealed [MessageEnvelope]s with a
- * TTL; bounds abuse with a per-(sender,recipient) count cap and a per-recipient
- * total cap; dedups by msgId. Pull is non-destructive (kept until TTL) and the
- * recipient dedups, so a failed pull loses nothing.
+ * Durable store-and-forward mailbox a cacheHolder runs for offline recipients
+ * (ADR-0001 / M5, relay-architecture §9). Backed by [MailboxDao] so queued mail
+ * survives a holder restart - the earlier in-memory version dropped everything on
+ * process death, which negated most of the mailbox's value.
  *
- * v1 is in-memory (a holder restart drops queued mail); since messages also arrive
- * online and the recipient dedups, loss is recoverable. Persistence is a follow-up.
+ * Each envelope is sealed **at rest** with the cache AEAD ([cache]); the holder's
+ * on-device database therefore exposes neither message content (already
+ * end-to-end ECIES-sealed) nor the sender/recipient routing metadata of the mail it
+ * forwards. Abuse is bounded by a per-(sender,recipient) count cap and a per-recipient
+ * total cap; deposits dedup by msgId. Pull is non-destructive (kept until TTL) and the
+ * recipient dedups on insert, so a failed or repeated pull loses nothing.
+ *
+ * The associated data binds each ciphertext to its `recipientDid|msgId`, so a row
+ * whose blob is swapped under a different key fails GCM verification and is silently
+ * skipped on pull (treated as absent).
  */
 class MailboxHolder(
+    private val dao: MailboxDao,
+    private val cache: CacheCipher,
     private val clock: EpochClock = SystemClock,
     private val ttlMs: Long = DEFAULT_TTL_MS,
     private val maxPerSenderPerRecipient: Int = DEFAULT_MAX_PER_SENDER,
     private val maxEnvelopesPerRecipient: Int = DEFAULT_MAX_PER_RECIPIENT,
 ) {
-    private data class Stored(val envelope: MessageEnvelope, val depositedAt: Long)
-
+    // Serialises the cap-check + insert so concurrent deposits can't overrun a cap.
     private val mutex = Mutex()
-    private val byRecipient = mutableMapOf<String, MutableList<Stored>>()
 
     /** Queue [envelope] for its recipient. Returns false if a cap is hit; idempotent on msgId. */
     suspend fun deposit(envelope: MessageEnvelope): Boolean = mutex.withLock {
         val now = clock.nowMs()
-        val list = byRecipient.getOrPut(envelope.recipientDid) { mutableListOf() }
-        purge(list, now)
-        if (list.any { it.envelope.msgId == envelope.msgId }) return@withLock true // dedup
-        if (list.size >= maxEnvelopesPerRecipient) return@withLock false
-        val fromSender = list.count { it.envelope.senderDid == envelope.senderDid }
-        if (fromSender >= maxPerSenderPerRecipient) return@withLock false
-        list.add(Stored(envelope, now))
+        val cutoff = now - ttlMs
+        dao.deleteExpired(cutoff)
+        if (dao.has(envelope.msgId)) return@withLock true // dedup
+        if (dao.countForRecipient(envelope.recipientDid, cutoff) >= maxEnvelopesPerRecipient) return@withLock false
+        if (dao.countForSender(envelope.recipientDid, envelope.senderDid, cutoff) >= maxPerSenderPerRecipient) {
+            return@withLock false
+        }
+        val sealed = cache.seal(encodeMessageEnvelopeWire(envelope), aad(envelope.recipientDid, envelope.msgId))
+        dao.insert(
+            MailboxEntity(
+                msgId = envelope.msgId,
+                recipientDid = envelope.recipientDid,
+                senderDid = envelope.senderDid,
+                depositedAt = now,
+                ciphertext = sealed.ciphertext,
+                nonce = sealed.nonce,
+            ),
+        )
         true
     }
 
-    /** Non-expired envelopes queued for [recipientDid] (non-destructive). */
-    suspend fun pull(recipientDid: String): List<MessageEnvelope> = mutex.withLock {
-        val now = clock.nowMs()
-        val list = byRecipient[recipientDid] ?: return@withLock emptyList()
-        purge(list, now)
-        list.map { it.envelope }
+    /** Non-expired envelopes queued for [recipientDid] (non-destructive). Tampered rows are skipped. */
+    suspend fun pull(recipientDid: String): List<MessageEnvelope> {
+        val cutoff = clock.nowMs() - ttlMs
+        return dao.forRecipient(recipientDid, cutoff).mapNotNull { row ->
+            val wire = cache.open(row.ciphertext, row.nonce, aad(recipientDid, row.msgId)) ?: return@mapNotNull null
+            runCatching { decodeMessageEnvelope(wire) }.getOrNull()
+        }
     }
 
-    suspend fun count(recipientDid: String): Int = mutex.withLock {
-        val list = byRecipient[recipientDid] ?: return@withLock 0
-        purge(list, clock.nowMs())
-        list.size
-    }
+    suspend fun count(recipientDid: String): Int =
+        dao.countForRecipient(recipientDid, clock.nowMs() - ttlMs)
 
-    private fun purge(list: MutableList<Stored>, now: Long) {
-        list.removeAll { now - it.depositedAt > ttlMs }
-    }
+    private fun aad(recipientDid: String, msgId: String): ByteArray = "$recipientDid|$msgId".encodeToByteArray()
 
     companion object {
         const val DEFAULT_TTL_MS: Long = 7L * 24 * 60 * 60 * 1000

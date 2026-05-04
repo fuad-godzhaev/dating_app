@@ -268,6 +268,8 @@ fun encodeMailboxRequest(request: MailboxRequest): ByteArray =
             put("op", CborValue.CString(request.op))
             put("recipientDid", CborValue.CString(request.recipientDid))
             request.envelope?.let { put("envelope", CborValue.CBytes(encodeMessageEnvelopeWire(it))) }
+            put("authAtMs", CborValue.CInt(request.authAtMs))
+            request.authSignature?.let { put("authSignature", CborValue.CBytes(it)) }
         }),
     )
 
@@ -278,6 +280,8 @@ fun decodeMailboxRequest(bytes: ByteArray): MailboxRequest {
         op = m.getValue("op").asString(),
         recipientDid = m.getValue("recipientDid").asString(),
         envelope = (m["envelope"] as? CborValue.CBytes)?.v?.let { decodeMessageEnvelope(it) },
+        authAtMs = (m["authAtMs"] as? CborValue.CInt)?.v ?: 0L,
+        authSignature = (m["authSignature"] as? CborValue.CBytes)?.v,
     )
 }
 

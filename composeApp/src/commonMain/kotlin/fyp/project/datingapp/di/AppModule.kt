@@ -187,10 +187,12 @@ val appModule = module {
     }
 
     // ---- Part 5 / M5: offline mailbox over /datingapp/mailbox/1.0.0 ----
-    single { MailboxHolder() }
+    // Persistent (survives holder restart) + sealed at rest with the cache AEAD.
+    single { MailboxHolder(dao = get<AppDatabase>().mailboxDao(), cache = get<CacheCipher>(), clock = SystemClock) }
     single<MailboxHolderLocator> { TransportMailboxHolderLocator(get()) }
     single<MailboxStreamClient> { Libp2pMailboxStreamClient(get()) }
-    single { MailboxStreamServer(holder = get(), verifier = get()) }
+    // Verifies the recipient's signed token on pull (authenticated retrieval).
+    single { MailboxStreamServer(holder = get(), verifier = get(), clock = SystemClock) }
     single {
         val auth = get<AuthRepository>()
         MailboxService(
@@ -198,6 +200,8 @@ val appModule = module {
             locator = get(),
             streamClient = get(),
             onEnvelope = { get<MessageService>().handleIncoming(it) },
+            sign = { auth.sign(it) },
+            clock = SystemClock,
         )
     }
 

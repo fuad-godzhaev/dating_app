@@ -1,5 +1,7 @@
 package fyp.project.datingapp.p2p.messaging
 
+import fyp.project.datingapp.p2p.relay.EpochClock
+import fyp.project.datingapp.p2p.relay.SystemClock
 import fyp.project.datingapp.p2p.transport.wire.MailboxRequest
 import fyp.project.datingapp.p2p.transport.wire.MessageEnvelope
 import fyp.project.datingapp.records.canonical.encodeMessageEnvelopeWire
@@ -20,6 +22,9 @@ class MailboxService(
     // Feed a pulled envelope (as wire bytes) back through the normal receive path
     // (verify + decrypt + dedup + store) = MessageService.handleIncoming.
     private val onEnvelope: suspend (ByteArray) -> Boolean,
+    // Signs the pull token proving we control our DID (P-256, = AuthRepository.sign).
+    private val sign: suspend (ByteArray) -> ByteArray,
+    private val clock: EpochClock = SystemClock,
     private val maxHolders: Int = DEFAULT_MAX_HOLDERS,
 ) {
     /** Park [envelope] at up to [maxHolders] of the recipient's mailbox holders. */
@@ -44,8 +49,21 @@ class MailboxService(
         var delivered = 0
         val holders = locator.find(me).take(maxHolders).toList()
         for (holderPeerId in holders) {
+            // Authenticate the pull: sign a fresh token bound to this holder so only we
+            // (the DID owner) can retrieve our mail and the token can't be replayed elsewhere.
+            val authAtMs = clock.nowMs()
+            val signature = runCatching { sign(MailboxRequest.pullSignable(me, holderPeerId, authAtMs)) }.getOrNull()
+                ?: continue
             val response = runCatching {
-                streamClient.request(holderPeerId, MailboxRequest(op = MailboxRequest.OP_PULL, recipientDid = me))
+                streamClient.request(
+                    holderPeerId,
+                    MailboxRequest(
+                        op = MailboxRequest.OP_PULL,
+                        recipientDid = me,
+                        authAtMs = authAtMs,
+                        authSignature = signature,
+                    ),
+                )
             }.getOrNull()
             response?.envelopes?.forEach { envelope ->
                 val ok = runCatching { onEnvelope(encodeMessageEnvelopeWire(envelope)) }.getOrDefault(false)
