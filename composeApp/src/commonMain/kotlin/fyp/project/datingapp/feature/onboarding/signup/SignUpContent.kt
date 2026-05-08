@@ -1,11 +1,9 @@
 package fyp.project.datingapp.feature.onboarding.signup
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,41 +11,40 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import fyp.project.datingapp.ui.components.AnimatedLogo
-import fyp.project.datingapp.ui.theme.Orange
-import fyp.project.datingapp.ui.theme.Pink
-import fyp.project.datingapp.ui.theme.TinderCloneComposeTheme
+import fyp.project.datingapp.ui.components.aura.AddChip
+import fyp.project.datingapp.ui.components.aura.AuraChip
+import fyp.project.datingapp.ui.components.aura.AuraLogo
+import fyp.project.datingapp.ui.components.aura.AuraStepper
+import fyp.project.datingapp.ui.components.aura.AuraTextField
+import fyp.project.datingapp.ui.components.aura.AuraTopBar
+import fyp.project.datingapp.ui.components.aura.AuraWordmark
+import fyp.project.datingapp.ui.components.aura.AuroraBackground
+import fyp.project.datingapp.ui.components.aura.PinDots
+import fyp.project.datingapp.ui.components.aura.PrimaryButton
+import fyp.project.datingapp.ui.components.aura.SecondaryButton
+import fyp.project.datingapp.ui.theme.aura.AuraTheme
 
 @Composable
 fun SignUpContent(
@@ -68,25 +65,14 @@ fun SignUpContent(
 ) {
     when (state.step) {
         SignUpComponent.Step.Welcome -> WelcomeStep(state, onCreateNewAccount, onRestoreExistingAccount)
-        SignUpComponent.Step.GeneratingIdentity -> GeneratingStep()
+        SignUpComponent.Step.GeneratingIdentity -> LoadingStep("Generating your identity...")
         SignUpComponent.Step.ShowSeedPhrase -> ShowSeedPhraseStep(state, onSeedPhraseWrittenDown, onBack)
         SignUpComponent.Step.EnterSeedPhrase -> EnterSeedPhraseStep(state, onSeedWordChanged, onConfirmSeedPhrase, onBack)
         SignUpComponent.Step.SetPin -> SetPinStep(state, onPinDigitEntered, onPinBackspace, onBack)
-        SignUpComponent.Step.CreateProfile -> CreateProfileStep(state, onDisplayNameChanged, onBioChanged, onAgeChanged, onInterestsChanged, onCreateProfile)
+        SignUpComponent.Step.CreateProfile -> CreateProfileStep(
+            state, onDisplayNameChanged, onBioChanged, onAgeChanged, onInterestsChanged, onCreateProfile, onBack,
+        )
     }
-}
-
-@Composable
-private fun GradientBackground(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(brush = Brush.horizontalGradient(listOf(Pink, Orange)))
-            .windowInsetsPadding(WindowInsets.systemBars),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        content = content
-    )
 }
 
 @Composable
@@ -95,82 +81,95 @@ private fun WelcomeStep(
     onCreateNewAccount: () -> Unit,
     onRestoreExistingAccount: () -> Unit,
 ) {
-    GradientBackground {
-        Spacer(modifier = Modifier.weight(1f))
-        AnimatedLogo(modifier = Modifier.fillMaxWidth(.4f).padding(bottom = 8.dp), isAnimating = state.isLoading)
-        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(modifier = Modifier.weight(1f))
+    val colors = AuraTheme.colors
+    AuroraBackground {
+        Column(
+            Modifier.fillMaxSize().systemBarsPadding().padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(Modifier.weight(1f))
+            AuraLogo()
+            Spacer(Modifier.height(32.dp))
+            AuraWordmark()
+            Spacer(Modifier.height(16.dp))
+            Text("Connection, in your own light.", style = AuraTheme.text.body16, color = colors.textSecondary, textAlign = TextAlign.Center)
+            Spacer(Modifier.weight(1f))
             if (state.error != null) {
-                Text(
-                    text = state.error,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 16.dp)
-                )
+                Text(state.error, style = AuraTheme.text.caption13, color = colors.statePassStrong, modifier = Modifier.padding(bottom = 12.dp))
             }
-            OutlinedButton(
-                onClick = onCreateNewAccount,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                border = BorderStroke(2.dp, Color.White),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
-            ) {
-                Text("Create New Account", modifier = Modifier.padding(vertical = 4.dp))
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedButton(
-                onClick = onRestoreExistingAccount,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                border = BorderStroke(2.dp, Color.White),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
-            ) {
-                Text("Restore Existing Account", modifier = Modifier.padding(vertical = 4.dp))
-            }
-            Spacer(modifier = Modifier.height(44.dp))
+            PrimaryButton("Create new account", onClick = onCreateNewAccount, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(12.dp))
+            SecondaryButton("Restore existing account", onClick = onRestoreExistingAccount, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(16.dp))
+            Text("Decentralized · No servers · Your keys", style = AuraTheme.text.caption13, color = colors.textTertiary)
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-private fun GeneratingStep() {
-    GradientBackground {
-        CircularProgressIndicator(color = Color.White)
+private fun LoadingStep(message: String) {
+    val colors = AuraTheme.colors
+    AuroraBackground {
+        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            AuraLogo()
+            Spacer(Modifier.height(32.dp))
+            CircularProgressIndicator(color = colors.accentTeal)
+            Spacer(Modifier.height(16.dp))
+            Text(message, style = AuraTheme.text.body16, color = colors.textSecondary)
+        }
     }
 }
 
 @Composable
 private fun ShowSeedPhraseStep(
     state: SignUpComponent.State,
-    onSeedPhraseWrittenDown: () -> Unit,
+    onWrittenDown: () -> Unit,
     onBack: () -> Unit,
 ) {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars).padding(24.dp)) {
-            Text("Your Recovery Phrase", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-            Text("Write these 12 words down in order. You'll need them to restore your account.", modifier = Modifier.padding(bottom = 24.dp))
-            val words = state.generatedSeedPhrase?.words ?: emptyList()
-            Column(modifier = Modifier.weight(1f)) {
-                words.chunked(2).forEachIndexed { rowIndex, rowWords ->
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                        rowWords.forEachIndexed { colIndex, word ->
-                            Text(
-                                text = "${rowIndex * 2 + colIndex + 1}. $word",
-                                modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 16.sp
-                            )
-                        }
-                    }
+    val colors = AuraTheme.colors
+    val words = state.generatedSeedPhrase?.words ?: emptyList()
+    Column(Modifier.fillMaxSize().background(colors.bgBase).systemBarsPadding()) {
+        AuraTopBar(onBack = onBack, trailing = { Text("2 / 4", style = AuraTheme.text.label14, color = colors.textSecondary) })
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
+            Text("Your recovery phrase", style = AuraTheme.text.heading22, color = colors.textPrimary)
+            Spacer(Modifier.height(8.dp))
+            Text("Write these 12 words down and keep them safe. They restore your account.", style = AuraTheme.text.body16, color = colors.textSecondary)
+            Spacer(Modifier.height(16.dp))
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(colors.bgSurface).padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(width = 4.dp, height = 20.dp).background(colors.statePass))
+                    Spacer(Modifier.size(12.dp))
+                    Text("Never share these words with anyone.", style = AuraTheme.text.label14, color = colors.statePassStrong)
                 }
             }
-            Button(onClick = onSeedPhraseWrittenDown, modifier = Modifier.fillMaxWidth().padding(top = 24.dp)) {
-                Text("I've Written It Down")
+            Spacer(Modifier.height(20.dp))
+            for (rowStart in words.indices step 2) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    for (col in 0..1) {
+                        val i = rowStart + col
+                        if (i < words.size) WordChip(i + 1, words[i], Modifier.weight(1f)) else Spacer(Modifier.weight(1f))
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
             }
-            TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                Text("Back")
-            }
+            Spacer(Modifier.height(8.dp))
         }
+        Box(Modifier.padding(24.dp)) {
+            PrimaryButton("I've written it down", onClick = onWrittenDown, modifier = Modifier.fillMaxWidth())
+        }
+    }
+}
+
+@Composable
+private fun WordChip(index: Int, word: String, modifier: Modifier = Modifier) {
+    val colors = AuraTheme.colors
+    Row(
+        modifier.clip(RoundedCornerShape(14.dp)).background(colors.bgSurface).padding(horizontal = 12.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("$index", style = AuraTheme.text.caption13, color = colors.textTertiary)
+        Text(word, style = AuraTheme.text.body16, color = colors.textPrimary)
     }
 }
 
@@ -178,42 +177,31 @@ private fun ShowSeedPhraseStep(
 private fun EnterSeedPhraseStep(
     state: SignUpComponent.State,
     onSeedWordChanged: (Int, String) -> Unit,
-    onConfirmSeedPhrase: () -> Unit,
+    onConfirm: () -> Unit,
     onBack: () -> Unit,
 ) {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars).padding(horizontal = 24.dp)) {
-            item {
-                Text("Enter Recovery Phrase", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 24.dp, bottom = 16.dp))
+    val colors = AuraTheme.colors
+    Column(Modifier.fillMaxSize().background(colors.bgBase).systemBarsPadding()) {
+        AuraTopBar(title = "Restore account", onBack = onBack)
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
+            Text("Enter your 12-word recovery phrase", style = AuraTheme.text.body16, color = colors.textSecondary)
+            Spacer(Modifier.height(16.dp))
+            for (i in 0 until 12) {
+                AuraTextField(
+                    value = state.enteredSeedWords.getOrElse(i) { "" },
+                    onValueChange = { onSeedWordChanged(i, it) },
+                    placeholder = "word ${i + 1}",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
             }
-            item {
-                repeat(12) { index ->
-                    OutlinedTextField(
-                        value = state.enteredSeedWords[index],
-                        onValueChange = { onSeedWordChanged(index, it) },
-                        label = { Text("Word ${index + 1}") },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        singleLine = true
-                    )
-                }
+            if (state.error != null) {
+                Text(state.error, style = AuraTheme.text.caption13, color = colors.statePassStrong)
             }
-            item {
-                if (state.error != null) {
-                    Text(state.error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(vertical = 8.dp))
-                }
-                Button(
-                    onClick = onConfirmSeedPhrase,
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                    enabled = !state.isLoading
-                ) {
-                    if (state.isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
-                    else Text("Confirm")
-                }
-                TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                    Text("Back")
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-            }
+            Spacer(Modifier.height(8.dp))
+        }
+        Box(Modifier.padding(24.dp)) {
+            PrimaryButton("Restore", onClick = onConfirm, enabled = !state.isLoading, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -225,56 +213,45 @@ private fun SetPinStep(
     onPinBackspace: () -> Unit,
     onBack: () -> Unit,
 ) {
-    GradientBackground {
-        Spacer(modifier = Modifier.weight(1f))
-        Text(
-            text = if (state.isConfirmingPin) "Confirm PIN" else "Set PIN",
-            color = Color.White,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
-        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(modifier = Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(bottom = 24.dp)) {
-                repeat(4) { index ->
-                    Box(
-                        modifier = Modifier.size(16.dp).clip(CircleShape).background(
-                            if (index < state.pinDigitCount) Color.White else Color.White.copy(alpha = 0.3f)
-                        )
-                    )
-                }
-            }
-            if (state.error != null) {
-                Text(
-                    text = state.error,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 16.dp)
+    val colors = AuraTheme.colors
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focusRequester.requestFocus() } }
+    val entered = if (state.isConfirmingPin) state.pinConfirm else state.pin
+
+    AuroraBackground {
+        Column(
+            Modifier.fillMaxSize().systemBarsPadding().padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            AuraTopBar(onBack = onBack)
+            Spacer(Modifier.weight(1f))
+            Text(if (state.isConfirmingPin) "Confirm your PIN" else "Set your PIN", style = AuraTheme.text.heading22, color = colors.textPrimary)
+            Spacer(Modifier.height(8.dp))
+            Text("This PIN unlocks your identity on this device.", style = AuraTheme.text.caption13, color = colors.textTertiary, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(32.dp))
+            Box(contentAlignment = Alignment.Center) {
+                PinDots(filled = state.pinDigitCount)
+                BasicTextField(
+                    value = entered,
+                    onValueChange = { raw ->
+                        val filtered = raw.filter { it.isDigit() }.take(4)
+                        when {
+                            filtered.length > entered.length -> for (i in entered.length until filtered.length) onPinDigitEntered(filtered[i])
+                            filtered.length < entered.length -> repeat(entered.length - filtered.length) { onPinBackspace() }
+                        }
+                    },
+                    enabled = !state.isLoading,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    cursorBrush = SolidColor(Color.Transparent),
+                    textStyle = AuraTheme.text.body16.copy(color = Color.Transparent),
+                    modifier = Modifier.focusRequester(focusRequester).size(1.dp).alpha(0f),
                 )
             }
-            listOf(listOf('1', '2', '3'), listOf('4', '5', '6'), listOf('7', '8', '9')).forEach { row ->
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    row.forEach { digit ->
-                        TextButton(onClick = { onPinDigitEntered(digit) }, enabled = !state.isLoading, modifier = Modifier.size(72.dp)) {
-                            Text(digit.toString(), color = Color.White, fontSize = 24.sp)
-                        }
-                    }
-                }
+            if (state.error != null) {
+                Spacer(Modifier.height(16.dp))
+                Text(state.error, style = AuraTheme.text.caption13, color = colors.statePassStrong, textAlign = TextAlign.Center)
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                Spacer(modifier = Modifier.size(72.dp))
-                TextButton(onClick = { onPinDigitEntered('0') }, enabled = !state.isLoading, modifier = Modifier.size(72.dp)) {
-                    Text("0", color = Color.White, fontSize = 24.sp)
-                }
-                IconButton(onClick = onPinBackspace, modifier = Modifier.size(72.dp)) {
-                    Text("⌫", color = Color.White, fontSize = 20.sp)
-                }
-            }
-            TextButton(onClick = onBack) {
-                Text("Back", color = Color.White)
-            }
-            Spacer(modifier = Modifier.height(44.dp))
+            Spacer(Modifier.weight(1f))
         }
     }
 }
@@ -287,107 +264,43 @@ private fun CreateProfileStep(
     onAgeChanged: (Int) -> Unit,
     onInterestsChanged: (List<String>) -> Unit,
     onCreateProfile: () -> Unit,
+    onBack: () -> Unit,
 ) {
-    var interestsText by remember(state.interests) { mutableStateOf(state.interests.joinToString(", ")) }
-    Surface(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars).padding(horizontal = 24.dp)) {
-            item {
-                Text("Create Profile", fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 24.dp, bottom = 24.dp))
-                OutlinedTextField(
-                    value = state.displayName,
-                    onValueChange = onDisplayNameChanged,
-                    label = { Text("Display Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = state.bio,
-                    onValueChange = onBioChanged,
-                    label = { Text("Bio") },
-                    modifier = Modifier.fillMaxWidth().height(120.dp),
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Text("Age", modifier = Modifier.weight(1f))
-                    IconButton(onClick = { if (state.age > 18) onAgeChanged(state.age - 1) }) {
-                        Text("−", fontSize = 20.sp)
-                    }
-                    Text(state.age.toString(), modifier = Modifier.padding(horizontal = 16.dp), fontSize = 18.sp, fontWeight = FontWeight.Medium)
-                    IconButton(onClick = { onAgeChanged(state.age + 1) }) {
-                        Text("+", fontSize = 20.sp)
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = interestsText,
-                    onValueChange = {
-                        interestsText = it
-                        onInterestsChanged(it.split(",").map { s -> s.trim() }.filter { s -> s.isNotEmpty() })
-                    },
-                    label = { Text("Interests (comma-separated)") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                if (state.error != null) {
-                    Text(state.error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 8.dp))
-                }
-                Button(
-                    onClick = onCreateProfile,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = state.canCreateProfile && !state.isLoading
-                ) {
-                    if (state.isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
-                    else Text("Create Profile")
-                }
-                Spacer(modifier = Modifier.height(44.dp))
+    val colors = AuraTheme.colors
+    Column(Modifier.fillMaxSize().background(colors.bgBase).systemBarsPadding()) {
+        AuraTopBar(title = "Create your profile", onBack = onBack)
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(
+                Modifier.fillMaxWidth().height(96.dp).clip(RoundedCornerShape(20.dp)).background(colors.bgSurface),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("+ Add photos", style = AuraTheme.text.label14, color = colors.accentVioletBright)
             }
+            AuraTextField(state.displayName, onDisplayNameChanged, label = "Display name", placeholder = "Your name")
+            AuraTextField(state.bio, onBioChanged, label = "Bio", placeholder = "A little about you", singleLine = false, minHeight = 96.dp)
+            AuraStepper("Age", state.age, onDecrement = { onAgeChanged((state.age - 1).coerceAtLeast(18)) }, onIncrement = { onAgeChanged(state.age + 1) })
+            InterestsEditor(state.interests, onInterestsChanged)
+            if (state.error != null) {
+                Text(state.error, style = AuraTheme.text.caption13, color = colors.statePassStrong)
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+        Box(Modifier.padding(24.dp)) {
+            PrimaryButton("Create profile", onClick = onCreateProfile, enabled = state.canCreateProfile && !state.isLoading, modifier = Modifier.fillMaxWidth())
         }
     }
 }
 
-@Preview
 @Composable
-fun SignUpContentWelcomePreview() {
-    TinderCloneComposeTheme {
-        SignUpContent(
-            state = SignUpComponent.State(),
-            onCreateNewAccount = {},
-            onRestoreExistingAccount = {},
-            onSeedPhraseWrittenDown = {},
-            onSeedWordChanged = { _, _ -> },
-            onConfirmSeedPhrase = {},
-            onPinDigitEntered = {},
-            onPinBackspace = {},
-            onDisplayNameChanged = {},
-            onBioChanged = {},
-            onAgeChanged = {},
-            onInterestsChanged = {},
-            onCreateProfile = {},
-            onBack = {},
-        )
-    }
-}
-
-@Preview
-@Composable
-fun SignUpContentCreateProfilePreview() {
-    TinderCloneComposeTheme {
-        SignUpContent(
-            state = SignUpComponent.State(step = SignUpComponent.Step.CreateProfile, displayName = "Alice", age = 23),
-            onCreateNewAccount = {},
-            onRestoreExistingAccount = {},
-            onSeedPhraseWrittenDown = {},
-            onSeedWordChanged = { _, _ -> },
-            onConfirmSeedPhrase = {},
-            onPinDigitEntered = {},
-            onPinBackspace = {},
-            onDisplayNameChanged = {},
-            onBioChanged = {},
-            onAgeChanged = {},
-            onInterestsChanged = {},
-            onCreateProfile = {},
-            onBack = {},
-        )
+private fun InterestsEditor(interests: List<String>, onChange: (List<String>) -> Unit) {
+    val colors = AuraTheme.colors
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Interests", style = AuraTheme.text.label14, color = colors.textSecondary)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            interests.forEach { interest ->
+                AuraChip(interest, onRemove = { onChange(interests - interest) })
+            }
+            AddChip(onClick = { onChange(interests + "new") })
+        }
     }
 }

@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import fyp.project.datingapp.database.RepositoryManager
 import fyp.project.datingapp.domain.auth.AuthRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -21,6 +22,7 @@ interface SignInComponent {
         val error: String? = null,
         val incorrectAttempts: Int = 0,
         val suggestRecovery: Boolean = false,
+        val displayName: String? = null,
     ) {
         val digitCount: Int get() = enteredDigits.length
         val isComplete: Boolean get() = enteredDigits.length == PIN_LENGTH
@@ -37,6 +39,7 @@ interface SignInComponent {
 class DefaultSignInComponent(
     componentContext: ComponentContext,
     private val authRepository: AuthRepository,
+    private val repositoryManager: RepositoryManager,
     private val onNavigateToHome: () -> Unit,
     private val onNavigateToRestore: () -> Unit,
 ) : SignInComponent, ComponentContext by componentContext {
@@ -45,6 +48,14 @@ class DefaultSignInComponent(
     override val state: Value<SignInComponent.State> = _state
 
     private val scope = coroutineScope(Dispatchers.Main)
+
+    init {
+        // Load the display name for the "Welcome back, {name}" greeting (best-effort).
+        scope.launch {
+            val name = runCatching { repositoryManager.getMyProfile()?.displayName }.getOrNull()
+            if (name != null) _state.value = _state.value.copy(displayName = name)
+        }
+    }
 
     override fun onDigitEntered(digit: Char) {
         val current = _state.value

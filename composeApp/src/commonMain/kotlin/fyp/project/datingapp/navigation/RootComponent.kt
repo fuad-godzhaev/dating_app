@@ -19,6 +19,12 @@ import fyp.project.datingapp.feature.chat.DefaultChatComponent
 import fyp.project.datingapp.feature.chat.DefaultConversationListComponent
 import fyp.project.datingapp.feature.home.DefaultHomeComponent
 import fyp.project.datingapp.feature.home.HomeComponent
+import fyp.project.datingapp.feature.profile.DefaultEditProfileComponent
+import fyp.project.datingapp.feature.profile.DefaultProfileOverviewComponent
+import fyp.project.datingapp.feature.profile.EditProfileComponent
+import fyp.project.datingapp.feature.profile.ProfileOverviewComponent
+import fyp.project.datingapp.feature.settings.DefaultSettingsComponent
+import fyp.project.datingapp.feature.settings.SettingsComponent
 import fyp.project.datingapp.p2p.messaging.MessageService
 import fyp.project.datingapp.feature.onboarding.signin.DefaultSignInComponent
 import fyp.project.datingapp.feature.onboarding.signin.SignInComponent
@@ -41,6 +47,9 @@ interface RootComponent {
         class Home(val component: HomeComponent) : Child()
         class Messages(val component: ConversationListComponent) : Child()
         class Chat(val component: ChatComponent) : Child()
+        class ProfileOverview(val component: ProfileOverviewComponent) : Child()
+        class EditProfile(val component: EditProfileComponent) : Child()
+        class Settings(val component: SettingsComponent) : Child()
     }
 }
 
@@ -84,6 +93,7 @@ class DefaultRootComponent(
                 component = DefaultSignInComponent(
                     componentContext = componentContext,
                     authRepository = authRepository,
+                    repositoryManager = repositoryManager,
                     onNavigateToHome = { navigation.replaceAll(Config.Home) },
                     onNavigateToRestore = { navigation.replaceAll(Config.SignUp) },
                 )
@@ -104,6 +114,7 @@ class DefaultRootComponent(
                     peerProfileFeed = peerProfileFeed,
                     relayPolicy = relayPolicy,
                     sessionTokens = sessionTokens,
+                    navigateToEditProfile = { navigation.push(Config.ProfileOverview) },
                     navigateToMessages = { navigation.push(Config.Messages) },
                 )
             )
@@ -124,6 +135,34 @@ class DefaultRootComponent(
                     onBackClick = { navigation.pop() },
                 )
             )
+            Config.ProfileOverview -> RootComponent.Child.ProfileOverview(
+                component = DefaultProfileOverviewComponent(
+                    componentContext = componentContext,
+                    repositoryManager = repositoryManager,
+                    authRepository = authRepository,
+                    onSettingsClick = { navigation.push(Config.Settings) },
+                    onEditProfileClick = { navigation.push(Config.EditProfile) },
+                    onSignedOut = { navigation.replaceAll(Config.SignUp) },
+                    onBackClick = { navigation.pop() },
+                )
+            )
+            Config.EditProfile -> RootComponent.Child.EditProfile(
+                component = DefaultEditProfileComponent(
+                    componentContext = componentContext,
+                    repositoryManager = repositoryManager,
+                    onSaved = { navigation.pop() },
+                    onBackClick = { navigation.pop() },
+                )
+            )
+            Config.Settings -> RootComponent.Child.Settings(
+                component = DefaultSettingsComponent(
+                    componentContext = componentContext,
+                    authRepository = authRepository,
+                    onChangePinClick = { /* TODO(Change PIN): dedicated screen */ },
+                    onSignedOut = { navigation.replaceAll(Config.SignUp) },
+                    onBackClick = { navigation.pop() },
+                )
+            )
         }
     }
 
@@ -135,5 +174,8 @@ class DefaultRootComponent(
         @Serializable data object Home : Config
         @Serializable data object Messages : Config
         @Serializable data class Chat(val peerDid: String) : Config
+        @Serializable data object ProfileOverview : Config
+        @Serializable data object EditProfile : Config
+        @Serializable data object Settings : Config
     }
 }

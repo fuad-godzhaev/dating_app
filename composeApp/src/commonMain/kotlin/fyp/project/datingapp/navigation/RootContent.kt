@@ -3,18 +3,23 @@ package fyp.project.datingapp.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.stack.animation.slide
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import fyp.project.datingapp.feature.chat.ChatContent
 import fyp.project.datingapp.feature.chat.ConversationListContent
 import fyp.project.datingapp.feature.home.HomeContent
 import fyp.project.datingapp.feature.onboarding.signin.SignInContent
 import fyp.project.datingapp.feature.onboarding.signup.SignUpContent
+import fyp.project.datingapp.feature.profile.EditProfileContent
+import fyp.project.datingapp.feature.profile.ProfileOverviewContent
+import fyp.project.datingapp.feature.settings.SettingsContent
 import fyp.project.datingapp.feature.splash.SplashContent
 
 @Composable
 fun RootContent(component: RootComponent) {
     val stack by component.stack.subscribeAsState()
-    Children(stack = stack) { child ->
+    Children(stack = stack, animation = stackAnimation(slide())) { child ->
         when (val instance = child.instance) {
             is RootComponent.Child.Splash -> SplashContent(instance.component)
             is RootComponent.Child.SignIn -> SignInContent(
@@ -45,6 +50,9 @@ fun RootContent(component: RootComponent) {
             is RootComponent.Child.Home -> HomeContent(instance.component)
             is RootComponent.Child.Messages -> ConversationListContent(instance.component)
             is RootComponent.Child.Chat -> ChatContent(instance.component)
+            is RootComponent.Child.ProfileOverview -> ProfileOverviewContent(instance.component)
+            is RootComponent.Child.EditProfile -> EditProfileContent(instance.component)
+            is RootComponent.Child.Settings -> SettingsContent(instance.component)
         }
     }
 }

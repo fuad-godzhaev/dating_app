@@ -1,83 +1,79 @@
 package fyp.project.datingapp.feature.chat
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import androidx.compose.ui.unit.dp
+import fyp.project.datingapp.ui.components.aura.Avatar
+import fyp.project.datingapp.ui.components.aura.BackChevron
+import fyp.project.datingapp.ui.components.aura.HairlineDivider
+import fyp.project.datingapp.ui.theme.aura.AuraTheme
 
 @Composable
 fun ConversationListContent(component: ConversationListComponent) {
     val state by component.state.subscribeAsState()
-    Column(Modifier.fillMaxSize().statusBarsPadding()) {
+    val colors = AuraTheme.colors
+
+    Column(Modifier.fillMaxSize().background(colors.bgBase).systemBarsPadding()) {
+        // Header: back + big "Messages" title (AURA_DESIGN_SPEC §6.14).
         Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            IconButton(onClick = component::onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-            }
-            Text("Messages", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            BackChevron(Modifier.size(20.dp).clickable(onClick = component::onBack))
+            Text("Messages", style = AuraTheme.text.title28, color = colors.textPrimary)
         }
-        HorizontalDivider()
+        // TODO(Orbit): likes-you pill + new-matches strip once those flows exist.
+
         if (state.conversations.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No conversations yet", color = Color.Gray)
+                Text("No conversations yet", style = AuraTheme.text.body16, color = colors.textTertiary)
             }
         } else {
             LazyColumn(Modifier.fillMaxSize()) {
                 items(state.conversations, key = { it.peerDid }) { convo ->
-                    Column(
+                    Row(
                         Modifier
                             .fillMaxWidth()
                             .clickable { component.onOpenChat(convo.peerDid) }
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = 24.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                convo.peerDisplayName,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 16.sp,
-                                modifier = Modifier.weight(1f),
-                            )
-                            if (convo.unreadCount > 0) {
-                                Text(
-                                    convo.unreadCount.toString(),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFE91E63),
-                                )
+                        Avatar(size = 54.dp, initial = convo.peerDisplayName.take(1).uppercase())
+                        Column(Modifier.weight(1f)) {
+                            Text(convo.peerDisplayName, style = AuraTheme.text.body16, color = colors.textPrimary)
+                            convo.lastMessagePreview?.let {
+                                Text(it, style = AuraTheme.text.caption13, color = colors.textSecondary, maxLines = 1)
                             }
                         }
-                        convo.lastMessagePreview?.let {
-                            Text(it, color = Color.Gray, fontSize = 14.sp, maxLines = 1)
+                        if (convo.unreadCount > 0) {
+                            Box(Modifier.size(10.dp).background(colors.accentTeal, CircleShape))
                         }
                     }
-                    HorizontalDivider()
+                    HairlineDivider(inset = 90.dp)
                 }
             }
         }
+        Spacer(Modifier.size(0.dp))
     }
 }
