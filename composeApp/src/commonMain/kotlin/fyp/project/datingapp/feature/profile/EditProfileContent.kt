@@ -1,6 +1,7 @@
 package fyp.project.datingapp.feature.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,8 +21,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import fyp.project.datingapp.ui.theme.aura.auraDiagonalBrush
 import fyp.project.datingapp.ui.components.aura.AddChip
 import fyp.project.datingapp.ui.components.aura.AuraChip
 import fyp.project.datingapp.ui.components.aura.AuraStepper
@@ -35,18 +39,35 @@ fun EditProfileContent(component: EditProfileComponent) {
     val state by component.state.subscribeAsState()
     val colors = AuraTheme.colors
 
+    val picker = rememberImagePicker { bytes, mime -> component.onPhotoPicked(bytes, mime) }
+
     Column(Modifier.fillMaxSize().background(colors.bgBase).systemBarsPadding()) {
         AuraTopBar(title = "Edit profile", onBack = component::onBack)
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Photos grid (UI-only placeholders; real upload lands in E).
+            // Photos grid: existing/picked photos + an add tile that opens the OS picker.
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                repeat(3) {
-                    Box(Modifier.weight(1f).height(110.dp).clip(RoundedCornerShape(14.dp)).background(colors.bgSurface), contentAlignment = Alignment.Center) {
-                        Text("+", style = AuraTheme.text.heading22, color = colors.accentVioletBright)
+                state.photos.take(2).forEach { photo ->
+                    Box(
+                        Modifier.weight(1f).height(110.dp).clip(RoundedCornerShape(14.dp)).background(auraDiagonalBrush(deepStart = true)),
+                    ) {
+                        if (photo.filePath.isNotEmpty()) {
+                            AsyncImage(
+                                model = "file://${photo.filePath}",
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                            )
+                        }
                     }
+                }
+                Box(
+                    Modifier.weight(1f).height(110.dp).clip(RoundedCornerShape(14.dp)).background(colors.bgSurface).clickable { picker.launch() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("+", style = AuraTheme.text.heading22, color = colors.accentVioletBright)
                 }
             }
             AuraTextField(state.displayName, component::onDisplayNameChanged, label = "Display name", placeholder = "Your name")

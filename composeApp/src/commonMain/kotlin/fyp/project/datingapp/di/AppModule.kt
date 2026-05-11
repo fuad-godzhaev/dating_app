@@ -27,7 +27,12 @@ import fyp.project.datingapp.p2p.fetch.ProfileFetcher
 import fyp.project.datingapp.p2p.fetch.ProfileStreamClient
 import fyp.project.datingapp.p2p.fetch.StreamProfileFetcher
 import fyp.project.datingapp.p2p.fetch.TransportHolderLocator
+import fyp.project.datingapp.p2p.blob.PhotoUploader
 import fyp.project.datingapp.p2p.feed.PeerProfileFeed
+import fyp.project.datingapp.p2p.like.Libp2pLikeStreamClient
+import fyp.project.datingapp.p2p.like.LikeService
+import fyp.project.datingapp.p2p.like.LikeStreamClient
+import fyp.project.datingapp.p2p.like.LikeStreamServer
 import fyp.project.datingapp.p2p.messaging.EciesMessageCrypto
 import fyp.project.datingapp.p2p.messaging.Libp2pMailboxStreamClient
 import fyp.project.datingapp.p2p.messaging.Libp2pMessageStreamClient
@@ -205,6 +210,27 @@ val appModule = module {
         )
     }
 
+    // ---- E: photo upload (image-pick -> raw CID -> blob store -> profile) ----
+    single { PhotoUploader(blobStore = get(), blobDao = get<AppDatabase>().blobDao()) }
+
+    // ---- E: core match loop over /datingapp/like/1.0.0 ----
+    single<LikeStreamClient> { Libp2pLikeStreamClient(get()) }
+    single {
+        val auth = get<AuthRepository>()
+        LikeService(
+            selfDid = { auth.getDid() },
+            repo = get(),
+            incomingLikes = get<AppDatabase>().incomingLikeDao(),
+            messageDao = get<AppDatabase>().conversationDao(),
+            fetcher = get(),
+            verifier = get(),
+            peerDirectory = get(),
+            streamClient = get(),
+            clock = SystemClock,
+        )
+    }
+    single { LikeStreamServer { get<LikeService>().handleIncomingLike(it) } }
+
     // ---- Phase G.2: real peer feed (discovery + fetch behind one facade) ----
-    single { PeerProfileFeed(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { PeerProfileFeed(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 }

@@ -32,7 +32,9 @@ import fyp.project.datingapp.feature.onboarding.signup.DefaultSignUpComponent
 import fyp.project.datingapp.feature.onboarding.signup.SignUpComponent
 import fyp.project.datingapp.feature.splash.DefaultSplashComponent
 import fyp.project.datingapp.feature.splash.SplashComponent
+import fyp.project.datingapp.p2p.blob.PhotoUploader
 import fyp.project.datingapp.p2p.feed.PeerProfileFeed
+import fyp.project.datingapp.p2p.like.LikeService
 import fyp.project.datingapp.p2p.relay.RelayPolicy
 import fyp.project.datingapp.p2p.relay.SessionInteractionTokens
 import kotlinx.serialization.Serializable
@@ -63,6 +65,8 @@ class DefaultRootComponent(
     private val sessionTokens: SessionInteractionTokens,
     private val messageService: MessageService,
     private val messageDao: MessageDao,
+    private val likeService: LikeService,
+    private val photoUploader: PhotoUploader,
 ) : RootComponent, ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
@@ -114,6 +118,8 @@ class DefaultRootComponent(
                     peerProfileFeed = peerProfileFeed,
                     relayPolicy = relayPolicy,
                     sessionTokens = sessionTokens,
+                    likeService = likeService,
+                    messageService = messageService,
                     navigateToEditProfile = { navigation.push(Config.ProfileOverview) },
                     navigateToMessages = { navigation.push(Config.Messages) },
                 )
@@ -150,6 +156,7 @@ class DefaultRootComponent(
                 component = DefaultEditProfileComponent(
                     componentContext = componentContext,
                     repositoryManager = repositoryManager,
+                    photoUploader = photoUploader,
                     onSaved = { navigation.pop() },
                     onBackClick = { navigation.pop() },
                 )

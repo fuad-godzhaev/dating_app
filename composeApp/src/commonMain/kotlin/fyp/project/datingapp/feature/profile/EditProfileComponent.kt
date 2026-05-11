@@ -5,6 +5,8 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import fyp.project.datingapp.database.RepositoryManager
+import fyp.project.datingapp.p2p.blob.PhotoUploader
+import fyp.project.datingapp.p2p.blob.UploadedPhoto
 import fyp.project.datingapp.records.UserProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -16,6 +18,7 @@ interface EditProfileComponent {
     fun onBioChanged(value: String)
     fun onAgeChanged(value: Int)
     fun onInterestsChanged(value: List<String>)
+    fun onPhotoPicked(bytes: ByteArray, mimeType: String)
     fun onSave()
     fun onBack()
 
@@ -25,6 +28,7 @@ interface EditProfileComponent {
         val bio: String = "",
         val age: Int = 18,
         val interests: List<String> = emptyList(),
+        val photos: List<UploadedPhoto> = emptyList(),
         val isSaving: Boolean = false,
         val error: String? = null,
     ) {
@@ -35,6 +39,7 @@ interface EditProfileComponent {
 class DefaultEditProfileComponent(
     componentContext: ComponentContext,
     private val repositoryManager: RepositoryManager,
+    private val photoUploader: PhotoUploader,
     private val onSaved: () -> Unit,
     private val onBackClick: () -> Unit,
 ) : EditProfileComponent, ComponentContext by componentContext {
@@ -54,6 +59,8 @@ class DefaultEditProfileComponent(
                     bio = p.bio ?: "",
                     age = p.age,
                     interests = p.interests,
+                    // Existing photos load without a local path (no preview); newly picked ones get one.
+                    photos = p.photos?.map { UploadedPhoto(it, "") } ?: emptyList(),
                 )
             }
         }
@@ -64,6 +71,13 @@ class DefaultEditProfileComponent(
     override fun onAgeChanged(value: Int) { _state.value = _state.value.copy(age = value) }
     override fun onInterestsChanged(value: List<String>) { _state.value = _state.value.copy(interests = value) }
     override fun onBack() = onBackClick()
+
+    override fun onPhotoPicked(bytes: ByteArray, mimeType: String) {
+        scope.launch {
+            val uploaded = runCatching { photoUploader.upload(bytes, mimeType) }.getOrNull() ?: return@launch
+            _state.value = _state.value.copy(photos = _state.value.photos + uploaded)
+        }
+    }
 
     override fun onSave() {
         val current = _state.value
@@ -76,6 +90,7 @@ class DefaultEditProfileComponent(
                 bio = current.bio,
                 age = current.age,
                 interests = current.interests,
+                photos = current.photos.map { it.ref }.takeIf { it.isNotEmpty() },
             )
             repositoryManager.putProfile(updated)
                 .onSuccess {

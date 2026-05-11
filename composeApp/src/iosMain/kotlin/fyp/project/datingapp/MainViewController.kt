@@ -32,6 +32,8 @@ fun MainViewController() = ComposeUIViewController {
         sessionTokens = koin.get<SessionInteractionTokens>(),
         messageService = koin.get(),
         messageDao = koin.get(),
+        likeService = koin.get(),
+        photoUploader = koin.get(),
     )
 
     App(root)

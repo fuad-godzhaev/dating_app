@@ -10,6 +10,8 @@ import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import fyp.project.datingapp.database.RepositoryManager
 import fyp.project.datingapp.p2p.feed.PeerProfileFeed
+import fyp.project.datingapp.p2p.like.LikeService
+import fyp.project.datingapp.p2p.messaging.MessageService
 import fyp.project.datingapp.p2p.relay.RelayPolicy
 import fyp.project.datingapp.p2p.relay.SessionInteractionTokens
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +50,8 @@ class DefaultHomeComponent(
     peerProfileFeed: PeerProfileFeed,
     relayPolicy: RelayPolicy,
     sessionTokens: SessionInteractionTokens,
+    likeService: LikeService,
+    messageService: MessageService,
     private val navigateToEditProfile: () -> Unit = {},
     private val navigateToMessages: () -> Unit = {},
 ) : HomeComponent, ComponentContext by componentContext {
@@ -60,6 +64,8 @@ class DefaultHomeComponent(
             peerProfileFeed = peerProfileFeed,
             relayPolicy = relayPolicy,
             sessionTokens = sessionTokens,
+            likeService = likeService,
+            messageService = messageService,
         ).provide()
     }
 

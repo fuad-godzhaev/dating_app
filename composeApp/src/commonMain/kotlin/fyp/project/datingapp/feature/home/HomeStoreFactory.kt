@@ -9,11 +9,14 @@ import fyp.project.datingapp.feature.home.HomeStore.Intent
 import fyp.project.datingapp.feature.home.HomeStore.Label
 import fyp.project.datingapp.feature.home.HomeStore.State
 import fyp.project.datingapp.p2p.feed.PeerProfileFeed
+import fyp.project.datingapp.p2p.like.LikeService
+import fyp.project.datingapp.p2p.messaging.MessageService
 import fyp.project.datingapp.p2p.relay.RelayPolicy
 import fyp.project.datingapp.p2p.relay.SessionInteractionTokens
 import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
 import fyp.project.datingapp.records.Match
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 class HomeStoreFactory (
     private val storeFactory: StoreFactory,
@@ -22,6 +25,8 @@ class HomeStoreFactory (
     private val peerProfileFeed: PeerProfileFeed,
     private val relayPolicy: RelayPolicy,
     private val sessionTokens: SessionInteractionTokens,
+    private val likeService: LikeService,
+    private val messageService: MessageService,
 ) {
 
     fun provide(): HomeStore =
@@ -132,9 +137,42 @@ class HomeStoreFactory (
                 ?: return
             dispatch(Msg.PictureLoaded(profileDid, pictureRef, path))
         }
-        private fun profileLiked(id: String) {}
-        private fun profileSwiped(id: String) {}
-        private fun sendMatchMessage(text: String) {}
+        /**
+         * Swipe-right (E): send a signed like to [id] and, if they had already liked us,
+         * it becomes a match now -> raise the It's-a-match overlay. The conversation +
+         * Match record are created inside [LikeService].
+         */
+        private fun profileLiked(id: String) {
+            scope.launch {
+                val card = loadedCard(id)
+                val matched = runCatching { likeService.sendLike(id, card?.profile?.displayName) }.getOrDefault(false)
+                if (matched) {
+                    dispatch(
+                        Msg.MatchOccured(
+                            match = Match(subject = id, createdAt = Clock.System.now().toString()),
+                            matchDialog = card?.profile?.displayName ?: id,
+                            pictureBlobs = card?.pictureBlobs ?: emptyList(),
+                        ),
+                    )
+                }
+            }
+        }
+
+        private fun profileSwiped(id: String) { /* pass: no like sent; card removed via DismissProfile */ }
+
+        /** First message from the It's-a-match overlay: deliver it, then close the overlay. */
+        private fun sendMatchMessage(text: String) {
+            val peerDid = state().dialog?.match?.subject
+            scope.launch {
+                if (!peerDid.isNullOrBlank() && text.isNotBlank()) {
+                    runCatching { messageService.sendMessage(peerDid, text) }
+                }
+                dispatch(Msg.MatchDialogDismissed)
+            }
+        }
+
+        private fun loadedCard(did: String): State.ProfileCardState? =
+            (state().contentState as? State.ContentState.Loaded)?.profiles?.firstOrNull { it.profile.did == did }
     }
 
 

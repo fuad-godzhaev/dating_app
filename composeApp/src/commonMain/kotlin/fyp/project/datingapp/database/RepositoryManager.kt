@@ -8,6 +8,8 @@ import fyp.project.datingapp.domain.auth.AuthRepository
 import fyp.project.datingapp.p2p.relay.GossipSubInvalidator
 import fyp.project.datingapp.p2p.transport.wire.ProfileInvalidation
 import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
+import fyp.project.datingapp.records.Like
+import fyp.project.datingapp.records.Match
 import fyp.project.datingapp.records.UserProfile
 import fyp.project.datingapp.records.canonical.CanonicalEncoder
 import fyp.project.datingapp.records.canonical.Cid
@@ -141,6 +143,67 @@ class RepositoryManager(
             collection = Collections.PROFILE,
             rkey = "self"
         ) != null
+    }
+
+    // ---- Likes / matches (E: core match loop) -------------------------------
+
+    /**
+     * Record an outgoing like for [targetDid] (signed, stored under the LIKE
+     * collection keyed by the target DID, so a reciprocal check is a point lookup),
+     * and return the [SignedEnvelope] to deliver to the target over the like stream.
+     */
+    suspend fun putLike(targetDid: String): Result<SignedEnvelope> {
+        val myDid = authRepository.getDid()
+            ?: return Result.failure(IllegalStateException("No identity — cannot like"))
+        val like = Like(subject = targetDid, createdAt = timeZoneNow().toString())
+        val bytes = encodeCanonical(like)
+        val cid = Cid.cidV1DagCbor(bytes)
+        val signature = authRepository.sign(bytes)
+        db.recordDao().upsertRecord(
+            RecordEntity(
+                collection = Collections.LIKE,
+                rkey = targetDid,
+                cborBytes = bytes,
+                cid = cid,
+                createdAt = timeZoneNow().toEpochMilliseconds(),
+                signature = signature,
+            )
+        )
+        updateCommit()
+        return Result.success(
+            SignedEnvelope(
+                collection = Collections.LIKE,
+                rkey = targetDid,
+                ownerDid = myDid,
+                cid = cid,
+                canonicalBytes = bytes,
+                signature = signature,
+            )
+        )
+    }
+
+    /** True if this user has already liked [targetDid] (a reciprocal like ⇒ match). */
+    suspend fun hasOutgoingLike(targetDid: String): Boolean =
+        db.recordDao().getRecord(Collections.LIKE, targetDid) != null
+
+    /** Record a mutual match with [peerDid] (signed, stored under the MATCH collection). */
+    suspend fun putMatch(peerDid: String): Result<Unit> {
+        val match = Match(subject = peerDid, createdAt = timeZoneNow().toString())
+        val bytes = encodeCanonical(match)
+        val cid = Cid.cidV1DagCbor(bytes)
+        val signature = authRepository.sign(bytes)
+        db.recordDao().upsertRecord(
+            RecordEntity(
+                collection = Collections.MATCH,
+                rkey = peerDid,
+                cborBytes = bytes,
+                cid = cid,
+                createdAt = timeZoneNow().toEpochMilliseconds(),
+                signature = signature,
+            )
+        )
+        updateCommit()
+        return Result.success(Unit)
     }
 
     //-----Commit Management-----

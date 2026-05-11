@@ -119,6 +119,15 @@ fun encodeCanonical(like: Like): ByteArray =
 fun encodeCanonical(match: Match): ByteArray =
     CanonicalEncoder.encode(match.toCborValue())
 
+fun decodeLike(bytes: ByteArray): Like {
+    val m = CanonicalDecoder.decode(bytes).asMap()
+    return Like(
+        type = m["\$type"]?.asString() ?: "fyp.project.datingapp.records.like",
+        subject = m.getValue("subject").asString(),
+        createdAt = m.getValue("createdAt").asString(),
+    )
+}
+
 fun encodeCanonical(message: Message): ByteArray =
     CanonicalEncoder.encode(message.toCborValue())
 

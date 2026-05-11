@@ -6,6 +6,7 @@ import fyp.project.datingapp.p2p.discovery.DiscoveryFilters
 import fyp.project.datingapp.p2p.discovery.DiscoveryService
 import fyp.project.datingapp.p2p.fetch.ProfileFetcher
 import fyp.project.datingapp.p2p.fetch.StreamProfileFetcher
+import fyp.project.datingapp.p2p.like.LikeStreamServer
 import fyp.project.datingapp.p2p.messaging.MailboxService
 import fyp.project.datingapp.p2p.messaging.MailboxStreamServer
 import fyp.project.datingapp.p2p.messaging.MessageStreamServer
@@ -49,6 +50,7 @@ class PeerProfileFeed(
     private val messageServer: MessageStreamServer,
     private val mailboxServer: MailboxStreamServer,
     private val mailboxService: MailboxService,
+    private val likeServer: LikeStreamServer,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val startMutex = Mutex()
@@ -63,6 +65,7 @@ class PeerProfileFeed(
             blobServer.register(transport)
             messageServer.register(transport)
             mailboxServer.register(transport)
+            likeServer.register(transport)
             lanBootstrap.start()
             discovery.announceSelf(scope)
             started = true

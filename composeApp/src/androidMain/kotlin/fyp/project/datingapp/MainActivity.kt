@@ -162,6 +162,8 @@ class MainActivity : ComponentActivity() {
             sessionTokens = koin.get<SessionInteractionTokens>(),
             messageService = koin.get(),
             messageDao = koin.get(),
+            likeService = koin.get(),
+            photoUploader = koin.get(),
         )
 
         setContent {
