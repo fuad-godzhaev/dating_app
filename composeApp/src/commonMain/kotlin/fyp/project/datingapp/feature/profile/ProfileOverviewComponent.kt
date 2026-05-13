@@ -6,6 +6,8 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import fyp.project.datingapp.database.RepositoryManager
 import fyp.project.datingapp.domain.auth.AuthRepository
+import fyp.project.datingapp.p2p.background.BackgroundService
+import fyp.project.datingapp.p2p.feed.PeerProfileFeed
 import fyp.project.datingapp.records.UserProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,6 +31,8 @@ class DefaultProfileOverviewComponent(
     componentContext: ComponentContext,
     private val repositoryManager: RepositoryManager,
     private val authRepository: AuthRepository,
+    private val peerProfileFeed: PeerProfileFeed,
+    private val backgroundService: BackgroundService,
     private val onSettingsClick: () -> Unit,
     private val onEditProfileClick: () -> Unit,
     private val onSignedOut: () -> Unit,
@@ -56,7 +60,9 @@ class DefaultProfileOverviewComponent(
         if (_state.value.signingOut) return
         _state.value = _state.value.copy(signingOut = true)
         scope.launch {
-            // TODO(B): also peerProfileFeed.stop() + cancel FGS/WorkManager before deleting.
+            runCatching { peerProfileFeed.stop() }
+            backgroundService.cancelBackgroundSync()
+            backgroundService.setStayOnline(false)
             runCatching { authRepository.deleteAccount() }
             onSignedOut()
         }

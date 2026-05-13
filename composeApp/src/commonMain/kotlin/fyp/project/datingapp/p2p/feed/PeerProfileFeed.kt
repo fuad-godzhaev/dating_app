@@ -56,6 +56,10 @@ class PeerProfileFeed(
     private val startMutex = Mutex()
     private var started = false
 
+    /** Whether the host/feed is currently up. Lock-free read (benign race) so a background
+     *  worker can avoid tearing down a feed the foreground is already using. */
+    val isRunning: Boolean get() = started
+
     /** Bring up host + serving handler + LAN bootstrap + presence heartbeat. Idempotent. */
     suspend fun ensureStarted() {
         startMutex.withLock {

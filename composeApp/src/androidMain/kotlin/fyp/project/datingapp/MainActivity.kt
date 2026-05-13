@@ -10,10 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import com.arkivanov.decompose.defaultComponentContext
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import fyp.project.datingapp.database.RepositoryManager
-import fyp.project.datingapp.di.androidModule
-import fyp.project.datingapp.di.appModule
 import fyp.project.datingapp.domain.auth.AuthRepository
-import fyp.project.datingapp.domain.auth.KeyMigration
 import fyp.project.datingapp.navigation.DefaultRootComponent
 import fyp.project.datingapp.p2p.ble.BleBeacon
 import fyp.project.datingapp.p2p.ble.BleProximity
@@ -25,22 +22,17 @@ import fyp.project.datingapp.p2p.fetch.StreamProfileFetcher
 import fyp.project.datingapp.p2p.feed.PeerProfileFeed
 import fyp.project.datingapp.p2p.relay.RelayPolicy
 import fyp.project.datingapp.p2p.relay.SessionInteractionTokens
-import fyp.project.datingapp.p2p.transport.AndroidTransportEnv
 import fyp.project.datingapp.p2p.transport.Libp2pTransport
 import fyp.project.datingapp.p2p.transport.P2pSmoke
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import org.koin.android.ext.koin.androidContext
-import org.koin.core.context.startKoin
+import org.koin.core.context.GlobalContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-
-        AndroidTransportEnv.appContext = applicationContext
 
         // Coarse location is requested at app open (ADR-0002 cold-start pre-warm) so a
         // geohash cell is ready for discovery. Denial degrades gracefully (no announce).
@@ -49,16 +41,16 @@ class MainActivity : ComponentActivity() {
         ) {
             requestPermissions(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQ_LOCATION)
         }
-
-        val koin = startKoin {
-            androidContext(this@MainActivity)
-            modules(androidModule, appModule)
-        }.koin
-
-        // P-256 re-split rollout: drop any legacy non-P-256 identity before the graph reads it.
-        runBlocking {
-            KeyMigration(koin.get<AuthRepository>()).runIfNeeded()
+        // Notifications (Android 13+): background message + stay-online notifications.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIF)
         }
+
+        // Koin + KeyMigration + background scheduling are set up in DatingApp (Application),
+        // so background workers/services have a DI graph even with no Activity.
+        val koin = GlobalContext.get()
 
         // Debug-only B5 transport smoke tests, gated by intent extras so they never
         // run on normal launches. In-process: --ez p2p_smoke true. Cross-process
@@ -164,6 +156,7 @@ class MainActivity : ComponentActivity() {
             messageDao = koin.get(),
             likeService = koin.get(),
             photoUploader = koin.get(),
+            backgroundService = koin.get(),
         )
 
         setContent {
@@ -189,5 +182,6 @@ class MainActivity : ComponentActivity() {
     private companion object {
         const val REQ_LOCATION = 1001
         const val REQ_BLE = 1002
+        const val REQ_NOTIF = 1003
     }
 }

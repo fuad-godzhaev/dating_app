@@ -31,6 +31,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.work.runtime)
             implementation(libs.koin.android)
             // go-libp2p transport (ADR-0004): classes from the gomobile bind, JNI .so
             // in src/androidMain/jniLibs. Both extracted from golibp2p.aar (see

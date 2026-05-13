@@ -7,6 +7,8 @@ import fyp.project.datingapp.domain.location.LocationProvider
 import fyp.project.datingapp.getDatabaseBuilder
 import fyp.project.datingapp.p2p.ble.BleProximity
 import fyp.project.datingapp.p2p.ble.IosBleProximity
+import fyp.project.datingapp.p2p.background.BackgroundService
+import fyp.project.datingapp.p2p.background.NoopBackgroundService
 import fyp.project.datingapp.p2p.blob.BlobStore
 import fyp.project.datingapp.p2p.blob.IosBlobStore
 import fyp.project.datingapp.p2p.messaging.IosKeyAgreement
@@ -26,4 +28,5 @@ val iosModule = module {
     single<LanBootstrap> { IosLanBootstrap() }
     single<BlobStore> { IosBlobStore() }
     single<KeyAgreement> { IosKeyAgreement() }
+    single<BackgroundService> { NoopBackgroundService() }
 }

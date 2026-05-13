@@ -32,6 +32,7 @@ import fyp.project.datingapp.feature.onboarding.signup.DefaultSignUpComponent
 import fyp.project.datingapp.feature.onboarding.signup.SignUpComponent
 import fyp.project.datingapp.feature.splash.DefaultSplashComponent
 import fyp.project.datingapp.feature.splash.SplashComponent
+import fyp.project.datingapp.p2p.background.BackgroundService
 import fyp.project.datingapp.p2p.blob.PhotoUploader
 import fyp.project.datingapp.p2p.feed.PeerProfileFeed
 import fyp.project.datingapp.p2p.like.LikeService
@@ -67,6 +68,7 @@ class DefaultRootComponent(
     private val messageDao: MessageDao,
     private val likeService: LikeService,
     private val photoUploader: PhotoUploader,
+    private val backgroundService: BackgroundService,
 ) : RootComponent, ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
@@ -146,6 +148,8 @@ class DefaultRootComponent(
                     componentContext = componentContext,
                     repositoryManager = repositoryManager,
                     authRepository = authRepository,
+                    peerProfileFeed = peerProfileFeed,
+                    backgroundService = backgroundService,
                     onSettingsClick = { navigation.push(Config.Settings) },
                     onEditProfileClick = { navigation.push(Config.EditProfile) },
                     onSignedOut = { navigation.replaceAll(Config.SignUp) },
@@ -165,6 +169,8 @@ class DefaultRootComponent(
                 component = DefaultSettingsComponent(
                     componentContext = componentContext,
                     authRepository = authRepository,
+                    peerProfileFeed = peerProfileFeed,
+                    backgroundService = backgroundService,
                     onChangePinClick = { /* TODO(Change PIN): dedicated screen */ },
                     onSignedOut = { navigation.replaceAll(Config.SignUp) },
                     onBackClick = { navigation.pop() },

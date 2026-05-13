@@ -31,7 +31,7 @@ import fyp.project.datingapp.ui.theme.aura.AuraTheme
 
 @Composable
 fun SettingsContent(component: SettingsComponent) {
-    @Suppress("UNUSED_VARIABLE") val state by component.state.subscribeAsState()
+    val state by component.state.subscribeAsState()
     val colors = AuraTheme.colors
     // UI-only toggles for now (binding to DiscoveryPreferencesStore is a follow-up).
     var bleOn by remember { mutableStateOf(true) }
@@ -62,6 +62,15 @@ fun SettingsContent(component: SettingsComponent) {
                         title = "Local network (LAN) discovery",
                         subtitle = "Discover peers on the same Wi-Fi",
                         trailing = { AuraToggle(lanOn, { lanOn = it }) },
+                    )
+                }
+            }
+            Group("BACKGROUND") {
+                AuraCard {
+                    ListRow(
+                        title = "Stay online",
+                        subtitle = "Receive messages + help the network in the background (uses battery)",
+                        trailing = { AuraToggle(state.stayOnline, component::onStayOnlineChanged) },
                     )
                 }
             }

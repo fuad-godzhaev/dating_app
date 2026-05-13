@@ -34,6 +34,7 @@ fun MainViewController() = ComposeUIViewController {
         messageDao = koin.get(),
         likeService = koin.get(),
         photoUploader = koin.get(),
+        backgroundService = koin.get(),
     )
 
     App(root)
