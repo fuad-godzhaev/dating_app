@@ -58,7 +58,14 @@ fun ChatContent(component: ChatComponent) {
                 Text(state.title, style = AuraTheme.text.body16, color = colors.textPrimary, maxLines = 1)
                 Text("Active now", style = AuraTheme.text.caption13, color = colors.accentTeal)
             }
-            // TODO(Report): overflow menu -> Report screen.
+            // Overflow menu -> Report screen.
+            Column(
+                Modifier.size(width = 28.dp, height = 28.dp).clickable(onClick = component::onReport),
+                verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                repeat(3) { Box(Modifier.size(4.dp).background(colors.textSecondary, CircleShape)) }
+            }
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(colors.borderHairline))
 

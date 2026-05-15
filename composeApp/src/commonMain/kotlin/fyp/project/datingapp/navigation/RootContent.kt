@@ -13,6 +13,13 @@ import fyp.project.datingapp.feature.onboarding.signin.SignInContent
 import fyp.project.datingapp.feature.onboarding.signup.SignUpContent
 import fyp.project.datingapp.feature.profile.EditProfileContent
 import fyp.project.datingapp.feature.profile.ProfileOverviewContent
+import fyp.project.datingapp.feature.safety.BlockedUsersContent
+import fyp.project.datingapp.feature.safety.ReportContent
+import fyp.project.datingapp.feature.safety.ReportSentContent
+import fyp.project.datingapp.feature.orbit.OrbitContent
+import fyp.project.datingapp.feature.legal.LegalContent
+import fyp.project.datingapp.feature.settings.ChangePinContent
+import fyp.project.datingapp.feature.settings.RecoveryPhraseContent
 import fyp.project.datingapp.feature.settings.SettingsContent
 import fyp.project.datingapp.feature.splash.SplashContent
 
@@ -53,6 +60,13 @@ fun RootContent(component: RootComponent) {
             is RootComponent.Child.ProfileOverview -> ProfileOverviewContent(instance.component)
             is RootComponent.Child.EditProfile -> EditProfileContent(instance.component)
             is RootComponent.Child.Settings -> SettingsContent(instance.component)
+            is RootComponent.Child.Report -> ReportContent(instance.component)
+            is RootComponent.Child.ReportSent -> ReportSentContent(instance.component)
+            is RootComponent.Child.BlockedUsers -> BlockedUsersContent(instance.component)
+            is RootComponent.Child.Orbit -> OrbitContent(instance.component)
+            is RootComponent.Child.ChangePin -> ChangePinContent(instance.component)
+            is RootComponent.Child.RecoveryPhrase -> RecoveryPhraseContent(instance.component)
+            is RootComponent.Child.Legal -> LegalContent(instance.component)
         }
     }
 }

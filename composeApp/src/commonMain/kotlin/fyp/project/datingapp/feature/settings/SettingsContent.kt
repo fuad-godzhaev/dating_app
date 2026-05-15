@@ -47,7 +47,7 @@ fun SettingsContent(component: SettingsComponent) {
                 AuraCard {
                     ListRow(title = "Change PIN", onClick = component::onChangePin)
                     HairlineDivider()
-                    ListRow(title = "Recovery phrase") // TODO: recovery phrase view
+                    ListRow(title = "Recovery phrase", onClick = component::onRecoveryPhrase)
                 }
             }
             Group("DISCOVERY") {
@@ -76,11 +76,11 @@ fun SettingsContent(component: SettingsComponent) {
             }
             Group("PRIVACY & SAFETY") {
                 AuraCard {
-                    ListRow(title = "Privacy policy")
+                    ListRow(title = "Privacy policy", onClick = component::onPrivacyPolicy)
                     HairlineDivider()
-                    ListRow(title = "Blocked users")
+                    ListRow(title = "Blocked users", onClick = component::onBlockedUsers)
                     HairlineDivider()
-                    ListRow(title = "Terms of use")
+                    ListRow(title = "Terms of use", onClick = component::onTermsOfUse)
                 }
             }
             AuraCard {

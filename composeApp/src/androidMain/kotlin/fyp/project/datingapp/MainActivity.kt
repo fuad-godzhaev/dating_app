@@ -157,6 +157,8 @@ class MainActivity : ComponentActivity() {
             likeService = koin.get(),
             photoUploader = koin.get(),
             backgroundService = koin.get(),
+            incomingLikesDao = koin.get(),
+            profileFetcher = koin.get(),
         )
 
         setContent {

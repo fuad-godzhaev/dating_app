@@ -63,6 +63,7 @@ fun HomeContent(component: HomeComponent) {
         onSendMatchMessage = component::onSendMatchMessage,
         onNavigateToEditProfile = component::onNavigateToEditProfile,
         onNavigateToMessages = component::onNavigateToMessages,
+        onReport = component::onReport,
     )
 }
 
@@ -77,6 +78,7 @@ fun HomeContent(
     onSendMatchMessage: (String) -> Unit,
     onNavigateToEditProfile: () -> Unit,
     onNavigateToMessages: () -> Unit,
+    onReport: (String, String) -> Unit,
 ) {
     val colors = AuraTheme.colors
     val scope = rememberCoroutineScope()
@@ -179,7 +181,7 @@ fun HomeContent(
                     lookingFor = emptyList(),
                     onPass = { expanded = null; onSwiped(card, false); onDismissProfile() },
                     onLike = { expanded = null; onSwiped(card, true); onDismissProfile() },
-                    onReport = { /* TODO(Report): open Report screen */ },
+                    onReport = { expanded = null; onReport(card.profile.did, card.profile.displayName) },
                 )
             }
         }

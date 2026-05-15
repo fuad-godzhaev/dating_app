@@ -18,6 +18,7 @@ interface ChatComponent {
     val state: Value<State>
     fun onSend(text: String)
     fun onBack()
+    fun onReport()
 
     data class State(
         val peerDid: String,
@@ -33,6 +34,7 @@ class DefaultChatComponent(
     private val messageDao: MessageDao,
     private val messageService: MessageService,
     private val onBackClick: () -> Unit,
+    private val onReportClick: (String, String) -> Unit = { _, _ -> },
 ) : ChatComponent, ComponentContext by componentContext {
 
     private val _state = MutableValue(ChatComponent.State(peerDid = peerDid, title = peerDid))
@@ -65,4 +67,6 @@ class DefaultChatComponent(
     }
 
     override fun onBack() = onBackClick()
+
+    override fun onReport() = onReportClick(peerDid, _state.value.title)
 }

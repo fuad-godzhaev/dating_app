@@ -40,6 +40,7 @@ interface HomeComponent {
     fun onSendMatchMessage(text: String)
     fun onNavigateToEditProfile()
     fun onNavigateToMessages()
+    fun onReport(targetDid: String, targetName: String)
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -54,6 +55,7 @@ class DefaultHomeComponent(
     messageService: MessageService,
     private val navigateToEditProfile: () -> Unit = {},
     private val navigateToMessages: () -> Unit = {},
+    private val navigateToReport: (String, String) -> Unit = { _, _ -> },
 ) : HomeComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
@@ -103,4 +105,6 @@ class DefaultHomeComponent(
         store.accept(HomeStore.Intent.OpenedMessages)
         navigateToMessages()
     }
+
+    override fun onReport(targetDid: String, targetName: String) = navigateToReport(targetDid, targetName)
 }

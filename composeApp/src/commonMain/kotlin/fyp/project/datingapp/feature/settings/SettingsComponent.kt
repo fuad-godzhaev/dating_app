@@ -15,6 +15,10 @@ interface SettingsComponent {
     val state: Value<State>
     fun onChangePin()
     fun onStayOnlineChanged(enabled: Boolean)
+    fun onBlockedUsers()
+    fun onRecoveryPhrase()
+    fun onPrivacyPolicy()
+    fun onTermsOfUse()
     fun onSignOut()
     fun onBack()
 
@@ -30,6 +34,10 @@ class DefaultSettingsComponent(
     private val peerProfileFeed: PeerProfileFeed,
     private val backgroundService: BackgroundService,
     private val onChangePinClick: () -> Unit,
+    private val onBlockedUsersClick: () -> Unit = {},
+    private val onRecoveryPhraseClick: () -> Unit = {},
+    private val onPrivacyPolicyClick: () -> Unit = {},
+    private val onTermsOfUseClick: () -> Unit = {},
     private val onSignedOut: () -> Unit,
     private val onBackClick: () -> Unit,
 ) : SettingsComponent, ComponentContext by componentContext {
@@ -40,6 +48,10 @@ class DefaultSettingsComponent(
     private val scope = coroutineScope(Dispatchers.Main)
 
     override fun onChangePin() = onChangePinClick()
+    override fun onBlockedUsers() = onBlockedUsersClick()
+    override fun onRecoveryPhrase() = onRecoveryPhraseClick()
+    override fun onPrivacyPolicy() = onPrivacyPolicyClick()
+    override fun onTermsOfUse() = onTermsOfUseClick()
     override fun onBack() = onBackClick()
 
     /** Toggle the opt-in "Stay online" foreground service (Phase B). */

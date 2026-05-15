@@ -4,6 +4,7 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import fyp.project.datingapp.database.AppDatabase
 import fyp.project.datingapp.database.RepositoryManager
+import fyp.project.datingapp.database.appView.dao.IncomingLikesDao
 import fyp.project.datingapp.database.appView.dao.MessageDao
 import fyp.project.datingapp.domain.auth.AuthRepository
 import fyp.project.datingapp.domain.auth.DefaultAuthRepository
@@ -73,6 +74,7 @@ val appModule = module {
     // invalidations (Phase E) when the relay stack is present; no-op in tests.
     single { RepositoryManager(get(), get(), getOrNull()) }
     single<MessageDao> { get<AppDatabase>().conversationDao() }
+    single<IncomingLikesDao> { get<AppDatabase>().incomingLikeDao() }
 
     // ---- Phase C: discovery (transport runtime + presence over DHT/GossipSub) ----
     single<SignatureVerifier> { defaultSignatureVerifier() }

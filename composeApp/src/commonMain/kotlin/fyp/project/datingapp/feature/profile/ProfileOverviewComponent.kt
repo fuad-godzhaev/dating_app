@@ -17,6 +17,7 @@ interface ProfileOverviewComponent {
     val state: Value<State>
     fun onSettings()
     fun onEditProfile()
+    fun onRecoveryPhrase()
     fun onSignOut()
     fun onBack()
 
@@ -35,6 +36,7 @@ class DefaultProfileOverviewComponent(
     private val backgroundService: BackgroundService,
     private val onSettingsClick: () -> Unit,
     private val onEditProfileClick: () -> Unit,
+    private val onRecoveryPhraseClick: () -> Unit = {},
     private val onSignedOut: () -> Unit,
     private val onBackClick: () -> Unit,
 ) : ProfileOverviewComponent, ComponentContext by componentContext {
@@ -54,6 +56,7 @@ class DefaultProfileOverviewComponent(
 
     override fun onSettings() = onSettingsClick()
     override fun onEditProfile() = onEditProfileClick()
+    override fun onRecoveryPhrase() = onRecoveryPhraseClick()
     override fun onBack() = onBackClick()
 
     override fun onSignOut() {

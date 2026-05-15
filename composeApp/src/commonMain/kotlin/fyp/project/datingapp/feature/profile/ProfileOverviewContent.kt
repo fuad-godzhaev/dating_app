@@ -107,6 +107,7 @@ fun ProfileOverviewContent(component: ProfileOverviewComponent) {
                     title = "Recovery phrase",
                     subtitle = "Backed up · keep it offline",
                     trailing = { VerifiedBadge(size = 18.dp) },
+                    onClick = component::onRecoveryPhrase,
                 )
                 HairlineDivider()
                 ListRow(
