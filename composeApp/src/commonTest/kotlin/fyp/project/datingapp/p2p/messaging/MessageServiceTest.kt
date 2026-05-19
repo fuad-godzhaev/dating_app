@@ -5,6 +5,7 @@ import fyp.project.datingapp.p2p.discovery.PeerContact
 import fyp.project.datingapp.p2p.discovery.PeerDirectory
 import fyp.project.datingapp.p2p.fetch.ProfileFetcher
 import fyp.project.datingapp.p2p.relay.EpochClock
+import fyp.project.datingapp.p2p.transport.wire.MessageEnvelope
 import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
 import fyp.project.datingapp.records.UserProfile
 import fyp.project.datingapp.database.appView.entities.MessageEntity
@@ -69,6 +70,7 @@ class MessageServiceTest {
         directory: PeerDirectory,
         fetcherProfile: UserProfile? = profile(recipientDid),
         verifierResult: Boolean = true,
+        offlineDeposit: (suspend (MessageEnvelope) -> Boolean)? = null,
     ) = MessageService(
         selfDid = { selfDid },
         crypto = FakeMessageCrypto(),
@@ -81,6 +83,7 @@ class MessageServiceTest {
         clock = clock,
         newMsgId = { "msg-1" },
         nowIso = { "2026-05-23T12:00:00Z" },
+        offlineDeposit = offlineDeposit,
     )
 
     @Test fun sendMessage_encryptsStoresAndDelivers() = runTest {
@@ -94,9 +97,33 @@ class MessageServiceTest {
         val stored = dao.messages["msg-1"]
         assertNotNull(stored)
         assertEquals(MessageEntity.DIRECTION_OUT, stored.direction)
-        assertEquals(MessageEntity.STATE_SENT, stored.deliveryState)
+        // Direct online ack => DELIVERED (recipient's handler stored it).
+        assertEquals(MessageEntity.STATE_DELIVERED, stored.deliveryState)
         assertEquals("hi there", stored.plaintext)
         assertTrue(dao.hasConversation(recipientDid))
+    }
+
+    @Test fun sendMessage_parkedInMailbox_marksSent() = runTest {
+        val dao = FakeMessageDao()
+        val client = FakeStreamClient(ack = true)
+        // No peer contact -> online delivery fails; offlineDeposit parks it at a holder.
+        val svc = service(senderDid, dao, client, PeerDirectory(), offlineDeposit = { true })
+
+        assertFalse(svc.sendMessage(recipientDid, "later"))
+        assertEquals(0, client.sendCount)
+        assertEquals(MessageEntity.STATE_SENT, dao.messages["msg-1"]?.deliveryState)
+    }
+
+    @Test fun handleReceipt_marksOutgoingDelivered() = runTest {
+        val dao = FakeMessageDao()
+        // Park an outgoing message (SENT) first.
+        val svc = service(senderDid, dao, FakeStreamClient(ack = true), PeerDirectory(), offlineDeposit = { true })
+        svc.sendMessage(recipientDid, "later")
+        assertEquals(MessageEntity.STATE_SENT, dao.messages["msg-1"]?.deliveryState)
+
+        // A reverse receipt for that msgId flips it to DELIVERED.
+        assertTrue(svc.handleReceipt("msg-1".encodeToByteArray()))
+        assertEquals(MessageEntity.STATE_DELIVERED, dao.messages["msg-1"]?.deliveryState)
     }
 
     @Test fun sendMessage_noPeer_staysQueuedAndReturnsFalse() = runTest {

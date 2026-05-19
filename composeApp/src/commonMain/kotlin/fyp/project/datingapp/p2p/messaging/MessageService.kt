@@ -40,6 +40,9 @@ class MessageService(
     // M5: when online delivery fails, park the sealed envelope at the recipient's
     // mailbox holders (best-effort). Null in tests / when messaging is offline-less.
     private val offlineDeposit: (suspend (MessageEnvelope) -> Boolean)? = null,
+    // Delivery receipts: after we store an incoming message, ack the sender so they can
+    // flip SENT -> DELIVERED (covers the mailbox path). Null in tests / offline-less.
+    private val receiptClient: ReceiptStreamClient? = null,
 ) {
 
     /**
@@ -82,11 +85,21 @@ class MessageService(
 
         // Offline fallback (M5): recipient unreachable -> park the sealed envelope at
         // their mailbox holders for pickup on reconnect.
-        if (!delivered) {
-            runCatching { offlineDeposit?.invoke(envelope) }
+        val parked = if (!delivered) {
+            runCatching { offlineDeposit?.invoke(envelope) == true }.getOrDefault(false)
+        } else {
+            false
         }
 
-        messageDao.updateDeliveryState(msgId, if (delivered) MessageEntity.STATE_SENT else MessageEntity.STATE_QUEUED)
+        // DELIVERED = recipient acked direct online receipt (their handler stored it).
+        // SENT = handed to a holder, not yet delivered; a reverse receipt upgrades it to
+        // DELIVERED when the recipient pulls. QUEUED = nowhere yet; retried later.
+        val state = when {
+            delivered -> MessageEntity.STATE_DELIVERED
+            parked -> MessageEntity.STATE_SENT
+            else -> MessageEntity.STATE_QUEUED
+        }
+        messageDao.updateDeliveryState(msgId, state)
         messageDao.onOutgoingMessage(recipientDid, text, now)
         return delivered
     }
@@ -113,6 +126,27 @@ class MessageService(
         )
         ensureConversation(envelope.senderDid, null)
         messageDao.onNewMessage(envelope.senderDid, text, now)
+
+        // Best-effort delivery receipt back to the sender so they can flip SENT ->
+        // DELIVERED (notably after they parked it in our mailbox). Deferred if the sender
+        // is offline right now (no store-and-forward for receipts - documented).
+        runCatching {
+            peerDirectory.get(envelope.senderDid)?.let { sender ->
+                receiptClient?.send(sender, envelope.msgId.encodeToByteArray())
+            }
+        }
+        return true
+    }
+
+    /**
+     * Handle a delivery receipt received over [RECEIPT_PROTOCOL_ID]: the body is the
+     * original message's msgId; mark that outgoing message DELIVERED. A receipt for an
+     * unknown msgId is a harmless no-op.
+     */
+    suspend fun handleReceipt(receiptBytes: ByteArray): Boolean {
+        val msgId = receiptBytes.decodeToString()
+        if (msgId.isBlank()) return false
+        messageDao.updateDeliveryState(msgId, MessageEntity.STATE_DELIVERED)
         return true
     }
 

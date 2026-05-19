@@ -133,9 +133,9 @@ private fun MessageBubble(msg: MessageEntity) {
     } else {
         RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 5.dp, bottomEnd = 18.dp)
     }
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isOut) Arrangement.End else Arrangement.Start,
+        horizontalAlignment = if (isOut) Alignment.End else Alignment.Start,
     ) {
         Box(
             modifier = Modifier
@@ -152,6 +152,22 @@ private fun MessageBubble(msg: MessageEntity) {
                 style = AuraTheme.text.body16,
                 color = if (isOut) colors.textOnAccent else colors.textPrimary,
             )
+        }
+        if (isOut) {
+            val label = when (msg.deliveryState) {
+                MessageEntity.STATE_DELIVERED -> "Delivered"
+                MessageEntity.STATE_SENT -> "Sent"
+                MessageEntity.STATE_QUEUED -> "Queued"
+                else -> null
+            }
+            if (label != null) {
+                Text(
+                    label,
+                    style = AuraTheme.text.caption13,
+                    color = colors.textTertiary,
+                    modifier = Modifier.padding(top = 2.dp, end = 4.dp),
+                )
+            }
         }
     }
 }

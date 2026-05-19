@@ -42,8 +42,11 @@ import fyp.project.datingapp.p2p.messaging.MailboxHolderLocator
 import fyp.project.datingapp.p2p.messaging.MailboxService
 import fyp.project.datingapp.p2p.messaging.MailboxStreamClient
 import fyp.project.datingapp.p2p.messaging.MailboxStreamServer
+import fyp.project.datingapp.p2p.messaging.Libp2pReceiptStreamClient
 import fyp.project.datingapp.p2p.messaging.MessageCrypto
 import fyp.project.datingapp.p2p.messaging.MessageService
+import fyp.project.datingapp.p2p.messaging.ReceiptStreamClient
+import fyp.project.datingapp.p2p.messaging.ReceiptStreamServer
 import fyp.project.datingapp.p2p.messaging.MessageStreamClient
 import fyp.project.datingapp.p2p.messaging.MessageStreamServer
 import fyp.project.datingapp.p2p.messaging.TransportMailboxHolderLocator
@@ -172,6 +175,7 @@ val appModule = module {
         EciesMessageCrypto(selfDid = { auth.getDid() }, keyAgreement = get())
     }
     single<MessageStreamClient> { Libp2pMessageStreamClient(get()) }
+    single<ReceiptStreamClient> { Libp2pReceiptStreamClient(get()) }
     single {
         val auth = get<AuthRepository>()
         MessageService(
@@ -186,11 +190,16 @@ val appModule = module {
             // Lazy: parks undeliverable messages at the recipient's mailbox holders
             // (M5). getOrNull breaks the MessageService <-> MailboxService cycle.
             offlineDeposit = { env -> getOrNull<MailboxService>()?.deposit(env.recipientDid, env) ?: false },
+            receiptClient = get(),
         )
     }
     single {
         val service = get<MessageService>()
         MessageStreamServer { service.handleIncoming(it) }
+    }
+    single {
+        val service = get<MessageService>()
+        ReceiptStreamServer { service.handleReceipt(it) }
     }
 
     // ---- Part 5 / M5: offline mailbox over /datingapp/mailbox/1.0.0 ----
@@ -234,5 +243,5 @@ val appModule = module {
     single { LikeStreamServer { get<LikeService>().handleIncomingLike(it) } }
 
     // ---- Phase G.2: real peer feed (discovery + fetch behind one facade) ----
-    single { PeerProfileFeed(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { PeerProfileFeed(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 }

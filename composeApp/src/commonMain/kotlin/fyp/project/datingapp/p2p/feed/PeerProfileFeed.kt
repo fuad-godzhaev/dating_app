@@ -10,6 +10,7 @@ import fyp.project.datingapp.p2p.like.LikeStreamServer
 import fyp.project.datingapp.p2p.messaging.MailboxService
 import fyp.project.datingapp.p2p.messaging.MailboxStreamServer
 import fyp.project.datingapp.p2p.messaging.MessageStreamServer
+import fyp.project.datingapp.p2p.messaging.ReceiptStreamServer
 import fyp.project.datingapp.p2p.transport.Libp2pTransport
 import fyp.project.datingapp.p2p.transport.wire.SignedEnvelope
 import fyp.project.datingapp.records.UserProfile
@@ -51,6 +52,7 @@ class PeerProfileFeed(
     private val mailboxServer: MailboxStreamServer,
     private val mailboxService: MailboxService,
     private val likeServer: LikeStreamServer,
+    private val receiptServer: ReceiptStreamServer,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val startMutex = Mutex()
@@ -70,6 +72,7 @@ class PeerProfileFeed(
             messageServer.register(transport)
             mailboxServer.register(transport)
             likeServer.register(transport)
+            receiptServer.register(transport)
             lanBootstrap.start()
             discovery.announceSelf(scope)
             started = true
