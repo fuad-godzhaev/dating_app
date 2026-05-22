@@ -16,6 +16,11 @@ import fyp.project.datingapp.p2p.discovery.PresenceAnnouncer
 import fyp.project.datingapp.p2p.fetch.ProfileFetcher
 import fyp.project.datingapp.p2p.fetch.StreamProfileFetcher
 import fyp.project.datingapp.p2p.feed.PeerProfileFeed
+import fyp.project.datingapp.database.appView.dao.MessageDao
+import fyp.project.datingapp.p2p.discovery.PeerDirectory
+import fyp.project.datingapp.p2p.like.LikeService
+import fyp.project.datingapp.p2p.messaging.MailboxService
+import fyp.project.datingapp.p2p.messaging.MessageService
 import fyp.project.datingapp.p2p.transport.wire.AgeRange
 import java.math.BigInteger
 import java.security.Signature
@@ -637,6 +642,202 @@ object P2pSmoke {
             runCatching { a.stop() }
             runCatching { b.stop() }
             Log.i(TAG, "SMOKE DONE")
+        }
+    }
+
+    /**
+     * MESSAGECHECK (run on BOTH emulators, each with the other's DID as p2p_target_did).
+     * Brings the production feed up, drives discovery so the peer enters the PeerDirectory,
+     * sends one message, and logs delivery-state transitions (DELIVERED on a direct ack;
+     * SENT -> DELIVERED once a reverse receipt arrives) plus any messages received from the
+     * peer. PASS = each side logs an outgoing row reaching DELIVERED and an incoming row.
+     */
+    suspend fun runMessageCheck(
+        feed: PeerProfileFeed,
+        messageService: MessageService,
+        messageDao: MessageDao,
+        peerDirectory: PeerDirectory,
+        locator: GeohashLocator,
+        geohash: String,
+        targetDid: String,
+        text: String,
+    ) {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        try {
+            locator.setDebugGeohash(geohash)
+            feed.ensureStarted()
+            Log.i(TAG, "MSG starting target=$targetDid geohash=$geohash")
+            scope.launch {
+                feed.candidates().collect { Log.i(TAG, "MSG feed card did=${it.profile.did} name='${it.profile.displayName}'") }
+            }
+            scope.launch {
+                messageDao.getMessages(targetDid).collect { msgs ->
+                    msgs.lastOrNull()?.let { Log.i(TAG, "MSG row dir=${it.direction} state=${it.deliveryState} text='${it.plaintext}'") }
+                }
+            }
+            var sent = false
+            repeat(40) {
+                if (!sent && peerDirectory.get(targetDid) != null) {
+                    val delivered = runCatching { messageService.sendMessage(targetDid, text) }.getOrDefault(false)
+                    Log.i(TAG, "MSG sent delivered=$delivered")
+                    sent = true
+                }
+                if (!sent) delay(3000)
+            }
+            if (!sent) Log.i(TAG, "MSG target never entered directory (peer offline?)")
+            delay(90_000) // observe the reverse receipt + any incoming message
+        } catch (e: Throwable) {
+            Log.e(TAG, "MSG ERROR ${e.message}", e)
+        } finally {
+            scope.cancel()
+            Log.i(TAG, "MSG DONE")
+        }
+    }
+
+    /**
+     * MATCHCHECK / LIKECHECK (run on BOTH emulators with the other's DID). Likes the target;
+     * the second (reciprocal) like creates the match, marks the incoming like matched, and
+     * seeds a conversation. PASS = the reciprocal side logs matched=true and a conversation.
+     */
+    suspend fun runMatchCheck(
+        feed: PeerProfileFeed,
+        likeService: LikeService,
+        messageDao: MessageDao,
+        peerDirectory: PeerDirectory,
+        locator: GeohashLocator,
+        geohash: String,
+        targetDid: String,
+    ) {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        try {
+            locator.setDebugGeohash(geohash)
+            feed.ensureStarted()
+            Log.i(TAG, "MATCH starting target=$targetDid geohash=$geohash")
+            scope.launch {
+                feed.candidates().collect { Log.i(TAG, "MATCH feed card did=${it.profile.did} name='${it.profile.displayName}'") }
+            }
+            scope.launch {
+                messageDao.getActiveConversations().collect { convos ->
+                    Log.i(TAG, "MATCH conversations=${convos.map { it.peerDisplayName }}")
+                }
+            }
+            var liked = false
+            repeat(40) {
+                if (!liked && peerDirectory.get(targetDid) != null) {
+                    val matched = runCatching { likeService.sendLike(targetDid) }.getOrDefault(false)
+                    Log.i(TAG, "MATCH like sent matched=$matched")
+                    liked = true
+                }
+                if (!liked) delay(3000)
+            }
+            if (!liked) Log.i(TAG, "MATCH target never entered directory")
+            delay(60_000)
+        } catch (e: Throwable) {
+            Log.e(TAG, "MATCH ERROR ${e.message}", e)
+        } finally {
+            scope.cancel()
+            Log.i(TAG, "MATCH DONE")
+        }
+    }
+
+    /**
+     * INVALIDATECHECK (run on BOTH emulators). Logs each verified peer card, then after a
+     * delay re-saves its own profile with a new bio, which publishes a Phase-E GossipSub
+     * invalidation. PASS = the peer logs an updated card carrying the new bio.
+     */
+    suspend fun runInvalidateCheck(
+        feed: PeerProfileFeed,
+        repositoryManager: RepositoryManager,
+        locator: GeohashLocator,
+        geohash: String,
+        newBio: String,
+    ) {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        try {
+            locator.setDebugGeohash(geohash)
+            feed.ensureStarted()
+            Log.i(TAG, "INVALIDATE starting geohash=$geohash")
+            scope.launch {
+                feed.candidates().collect { Log.i(TAG, "INVALIDATE card did=${it.profile.did} bio='${it.profile.bio}'") }
+            }
+            delay(30_000)
+            val mine = runCatching { repositoryManager.getMyProfile() }.getOrNull()
+            if (mine != null) {
+                runCatching { repositoryManager.putProfile(mine.copy(bio = newBio)) }
+                Log.i(TAG, "INVALIDATE published own profile update bio='$newBio'")
+            } else {
+                Log.i(TAG, "INVALIDATE no local profile to update")
+            }
+            delay(60_000) // peers should log an updated card with the new bio
+        } catch (e: Throwable) {
+            Log.e(TAG, "INVALIDATE ERROR ${e.message}", e)
+        } finally {
+            scope.cancel()
+            Log.i(TAG, "INVALIDATE DONE")
+        }
+    }
+
+    /**
+     * HOLDERCHECK (Phase F cache-holder fallback). Repeatedly fetches [targetDid]'s profile
+     * over the cascade; once the origin is offline the answer should still resolve from a
+     * cacheHolder. **Needs a 3rd peer** (origin + holder + this fetcher) for a clean test;
+     * with two emulators it just exercises the cascade. PASS = resolved=true after origin off.
+     */
+    suspend fun runHolderCheck(
+        feed: PeerProfileFeed,
+        fetcher: ProfileFetcher,
+        locator: GeohashLocator,
+        geohash: String,
+        targetDid: String,
+    ) {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        try {
+            locator.setDebugGeohash(geohash)
+            feed.ensureStarted()
+            Log.i(TAG, "HOLDER starting target=$targetDid geohash=$geohash")
+            scope.launch { feed.candidates().collect { /* drive discovery so a holder is reachable */ } }
+            repeat(20) {
+                val p = runCatching { fetcher.fetch(targetDid) }.getOrNull()
+                Log.i(TAG, "HOLDER fetch did=$targetDid resolved=${p != null} name='${p?.displayName}'")
+                delay(5000)
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "HOLDER ERROR ${e.message}", e)
+        } finally {
+            scope.cancel()
+            Log.i(TAG, "HOLDER DONE")
+        }
+    }
+
+    /**
+     * MAILBOXCHECK (persistent offline mailbox pull). Brings the feed up and repeatedly pulls
+     * this device's queued mail from its holders (authenticated pull), logging the delivered
+     * count; a deposit -> kill -> restart -> pull -> decrypt run proves persistence. **Needs a
+     * holder distinct from sender + recipient** (3 peers) for a clean offline test; the
+     * in-process MailboxPullAuthTest covers the auth-pull contract.
+     */
+    suspend fun runMailboxCheck(
+        feed: PeerProfileFeed,
+        mailboxService: MailboxService,
+        locator: GeohashLocator,
+        geohash: String,
+    ) {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        try {
+            locator.setDebugGeohash(geohash)
+            feed.ensureStarted()
+            Log.i(TAG, "MAILBOX starting (pull own mail) geohash=$geohash")
+            scope.launch { feed.candidates().collect { /* keep host + discovery alive */ } }
+            repeat(12) {
+                val n = runCatching { mailboxService.pullOwnMail() }.getOrDefault(0)
+                Log.i(TAG, "MAILBOX pulled=$n")
+                delay(10_000)
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "MAILBOX ERROR ${e.message}", e)
+        } finally {
+            scope.cancel()
+            Log.i(TAG, "MAILBOX DONE")
         }
     }
 }

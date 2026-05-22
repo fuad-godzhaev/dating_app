@@ -139,6 +139,41 @@ class MainActivity : ComponentActivity() {
                     android.util.Log.i("P2pSmoke", "RECOVERY restore-same-DID: ${if (ok) "PASS" else "FAIL"} did1=$did1 did2=$did2")
                 }.onFailure { android.util.Log.e("P2pSmoke", "RECOVERY ERROR ${it.message}", it) }
             }
+            "messagecheck" -> CoroutineScope(Dispatchers.IO).launch {
+                P2pSmoke.runMessageCheck(
+                    koin.get(), koin.get(), koin.get(), koin.get(), koin.get<GeohashLocator>(),
+                    intent.getStringExtra("p2p_geohash") ?: "gc7x3",
+                    intent.getStringExtra("p2p_target_did").orEmpty(),
+                    intent.getStringExtra("p2p_text") ?: "hello from p2p smoke",
+                )
+            }
+            "matchcheck", "likecheck" -> CoroutineScope(Dispatchers.IO).launch {
+                P2pSmoke.runMatchCheck(
+                    koin.get(), koin.get(), koin.get(), koin.get(), koin.get<GeohashLocator>(),
+                    intent.getStringExtra("p2p_geohash") ?: "gc7x3",
+                    intent.getStringExtra("p2p_target_did").orEmpty(),
+                )
+            }
+            "invalidatecheck" -> CoroutineScope(Dispatchers.IO).launch {
+                P2pSmoke.runInvalidateCheck(
+                    koin.get(), koin.get(), koin.get<GeohashLocator>(),
+                    intent.getStringExtra("p2p_geohash") ?: "gc7x3",
+                    intent.getStringExtra("p2p_text") ?: "updated bio (invalidate check)",
+                )
+            }
+            "holdercheck" -> CoroutineScope(Dispatchers.IO).launch {
+                P2pSmoke.runHolderCheck(
+                    koin.get(), koin.get<ProfileFetcher>(), koin.get<GeohashLocator>(),
+                    intent.getStringExtra("p2p_geohash") ?: "gc7x3",
+                    intent.getStringExtra("p2p_target_did").orEmpty(),
+                )
+            }
+            "mailboxcheck" -> CoroutineScope(Dispatchers.IO).launch {
+                P2pSmoke.runMailboxCheck(
+                    koin.get(), koin.get(), koin.get<GeohashLocator>(),
+                    intent.getStringExtra("p2p_geohash") ?: "gc7x3",
+                )
+            }
             else -> if (intent?.getBooleanExtra("p2p_smoke", false) == true) {
                 CoroutineScope(Dispatchers.IO).launch { P2pSmoke.run() }
             }
