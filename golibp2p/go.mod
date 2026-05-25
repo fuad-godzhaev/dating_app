@@ -1,4 +1,4 @@
-module fyp.project.datingapp/golibp2p
+module com.aura/golibp2p
 
 go 1.26.3
 

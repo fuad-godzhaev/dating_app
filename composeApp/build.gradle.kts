@@ -69,7 +69,7 @@ kotlin {
 }
 
 android {
-    namespace = "fyp.project.datingapp"
+    namespace = "com.aura"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     room {
@@ -77,7 +77,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "fyp.project.datingapp"
+        applicationId = "com.aura"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1

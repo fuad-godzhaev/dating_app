@@ -54,6 +54,9 @@ type Host struct {
 
 	enableMdns bool
 
+	reachMu sync.Mutex
+	reach   network.Reachability // AutoNAT verdict, updated from the event bus (Idea C)
+
 	mu     sync.Mutex
 	topics map[string]*pubsub.Topic
 	subs   map[string]*pubsub.Subscription
@@ -61,7 +64,7 @@ type Host struct {
 
 // NewHost builds a go-libp2p host whose identity is the raw 32-byte Ed25519
 // transport seed (ADR-0003). listenAddrsCSV/bootstrapCSV are comma-separated
-// multiaddr strings. protocolPrefix namespaces protocols/DHT (e.g. "/datingapp").
+// multiaddr strings. protocolPrefix namespaces protocols/DHT (e.g. "/aura").
 // enableMdns toggles go-libp2p's built-in mDNS: keep it OFF on Android (SELinux
 // blocks netlink interface enumeration, b/155595000; LAN discovery is done via
 // Android NsdManager instead). Desktop/tests pass true.
@@ -72,7 +75,7 @@ func NewHost(seed []byte, listenAddrsCSV string, bootstrapCSV string, protocolPr
 	}
 	prefix := protocolPrefix
 	if prefix == "" {
-		prefix = "/datingapp"
+		prefix = "/aura"
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -86,7 +89,7 @@ func NewHost(seed []byte, listenAddrsCSV string, bootstrapCSV string, protocolPr
 		}
 	}
 
-	h, err := libp2p.New(
+	opts := []libp2p.Option{
 		libp2p.Identity(priv),
 		libp2p.ListenAddrStrings(listen...),
 		libp2p.DefaultTransports,
@@ -94,9 +97,17 @@ func NewHost(seed []byte, listenAddrsCSV string, bootstrapCSV string, protocolPr
 		libp2p.DefaultMuxers,
 		libp2p.EnableNATService(),
 		libp2p.EnableHolePunching(),
-		libp2p.EnableRelay(),
-		// TODO(Phase C): EnableAutoRelayWithPeerSource once bootstrap/peer source exists.
-	)
+		libp2p.EnableRelay(), // relay transport: required so DCUtR can coordinate a hole punch
+		// Open AutoRelay (EnableAutoRelayWithPeerSource over the DHT) stays OFF: it routes app
+		// traffic through arbitrary third-party relays, exposing connection metadata even though
+		// payloads stay E2EE. The phase-2 efficiency path instead allows a TRUSTED static relay set
+		// (the app's own reachable FGS nodes) via SetAutoRelayStaticRelays + a limited relay SERVICE
+		// via SetRelayServiceEnabled (both default-off) - see efficiency.go / INTEGRATION.md. This
+		// recovers DCUtR coordination + a tiny real-time path for the CGNAT majority without an open
+		// relay source. IPFS remains only a transient cold-entry rendezvous (ADR-0002).
+	}
+	opts = append(opts, efficiencyOptions()...)
+	h, err := libp2p.New(opts...)
 	if err != nil {
 		cancel()
 		return nil, err
@@ -118,7 +129,7 @@ func NewHost(seed []byte, listenAddrsCSV string, bootstrapCSV string, protocolPr
 func (host *Host) Start() error {
 	ns := strings.TrimPrefix(host.prefix, "/")
 
-	// Custom protocol prefix => app-private DHT (/datingapp/kad/1.0.0) and avoids
+	// Custom protocol prefix => app-private DHT (/aura/kad/1.0.0) and avoids
 	// the default /ipfs prefix's mandatory /pk + /ipns validators (ADR-0002).
 	kdht, err := dht.New(
 		host.ctx, host.h,
@@ -134,11 +145,14 @@ func (host *Host) Start() error {
 	}
 	host.kdht = kdht
 
-	ps, err := pubsub.NewGossipSub(host.ctx, host.h)
+	ps, err := pubsub.NewGossipSub(host.ctx, host.h, gossipOptions()...)
 	if err != nil {
 		return err
 	}
 	host.ps = ps
+
+	// Idea C: start caching AutoNAT's reachability verdict for the Kotlin reachability gate.
+	host.startReachabilityWatch()
 
 	// go-libp2p mDNS: only on platforms where interface enumeration works
 	// (desktop). Off on Android — see [NewHost]. Best-effort either way.

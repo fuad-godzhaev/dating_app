@@ -1,4 +1,4 @@
-rootProject.name = "datingapp"
+rootProject.name = "aura"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

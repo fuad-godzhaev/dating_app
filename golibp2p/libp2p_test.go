@@ -15,12 +15,12 @@ func TestMDNSDiscoveryAutoConnects(t *testing.T) {
 	seedB := make([]byte, 32)
 	seedB[0] = 2
 
-	a, err := NewHost(seedA, "/ip4/0.0.0.0/tcp/0", "", "/datingapp", true)
+	a, err := NewHost(seedA, "/ip4/0.0.0.0/tcp/0", "", "/aura", true)
 	if err != nil {
 		t.Fatalf("NewHost A: %v", err)
 	}
 	defer a.Stop()
-	b, err := NewHost(seedB, "/ip4/0.0.0.0/tcp/0", "", "/datingapp", true)
+	b, err := NewHost(seedB, "/ip4/0.0.0.0/tcp/0", "", "/aura", true)
 	if err != nil {
 		t.Fatalf("NewHost B: %v", err)
 	}
@@ -52,12 +52,12 @@ func TestPeerIDDeterministicFromSeed(t *testing.T) {
 	for i := range seed {
 		seed[i] = byte(i)
 	}
-	a, err := NewHost(seed, "/ip4/127.0.0.1/tcp/0", "", "/datingapp", false)
+	a, err := NewHost(seed, "/ip4/127.0.0.1/tcp/0", "", "/aura", false)
 	if err != nil {
 		t.Fatalf("NewHost A: %v", err)
 	}
 	defer a.Stop()
-	b, err := NewHost(seed, "/ip4/127.0.0.1/tcp/0", "", "/datingapp", false)
+	b, err := NewHost(seed, "/ip4/127.0.0.1/tcp/0", "", "/aura", false)
 	if err != nil {
 		t.Fatalf("NewHost B: %v", err)
 	}
