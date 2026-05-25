@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- The Aura mark (AURA_DESIGN_SPEC §6.1): an aurora-gradient orb inside a thin
+         aurora-gradient ring, mirroring the in-app AuraLogo. Ring diameter is inset to
+         ~84/108 so it stays clear of the adaptive-icon mask on circular launchers. -->
+
+    <!-- Ring: aurora-gradient stroke, no fill. -->
+    <path
+        android:pathData="M54,12 a42,42 0 1,0 0,84 a42,42 0 1,0 0,-84 z"
+        android:strokeWidth="4"
+        android:fillColor="#00000000">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="12"
+                android:startY="16"
+                android:endX="96"
+                android:endY="92">
+                <item android:offset="0" android:color="#FF7B61FF" />
+                <item android:offset="1" android:color="#FF2BD4B0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Orb: aurora-gradient filled circle (violet -> blue -> teal). -->
+    <path android:pathData="M54,36 a18,18 0 1,0 0,36 a18,18 0 1,0 0,-36 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="36"
+                android:startY="38"
+                android:endX="72"
+                android:endY="70">
+                <item android:offset="0" android:color="#FF7B61FF" />
+                <item android:offset="0.55" android:color="#FF5AB7D8" />
+                <item android:offset="1" android:color="#FF2BD4B0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Glossy specular highlight, top-left, for the orb sheen. -->
+    <path
+        android:pathData="M49,44.5 a4.5,4.5 0 1,0 0,9 a4.5,4.5 0 1,0 0,-9 z"
+        android:fillColor="#59FFFFFF" />
+</vector>

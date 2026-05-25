@@ -1,0 +1,578 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 4,
+    "identityHash": "8e92575efcf2fd3ff92586d64fa1f81e",
+    "entities": [
+      {
+        "tableName": "records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`collection` TEXT NOT NULL, `rkey` TEXT NOT NULL, `cborBytes` BLOB NOT NULL, `cid` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `signature` BLOB, PRIMARY KEY(`collection`, `rkey`))",
+        "fields": [
+          {
+            "fieldPath": "collection",
+            "columnName": "collection",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rkey",
+            "columnName": "rkey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cborBytes",
+            "columnName": "cborBytes",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cid",
+            "columnName": "cid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "signature",
+            "columnName": "signature",
+            "affinity": "BLOB"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "collection",
+            "rkey"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_records_collection",
+            "unique": false,
+            "columnNames": [
+              "collection"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_records_collection` ON `${TABLE_NAME}` (`collection`)"
+          },
+          {
+            "name": "index_records_cid",
+            "unique": true,
+            "columnNames": [
+              "cid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_records_cid` ON `${TABLE_NAME}` (`cid`)"
+          },
+          {
+            "name": "index_records_createdAt",
+            "unique": false,
+            "columnNames": [
+              "createdAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_records_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
+          }
+        ]
+      },
+      {
+        "tableName": "commits",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `did` TEXT NOT NULL, `rev` TEXT NOT NULL, `rootMstCid` TEXT NOT NULL, `signature` BLOB NOT NULL, `version` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "did",
+            "columnName": "did",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rev",
+            "columnName": "rev",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rootMstCid",
+            "columnName": "rootMstCid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "signature",
+            "columnName": "signature",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "blobs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`cid` TEXT NOT NULL, `mimeType` TEXT NOT NULL, `size` INTEGER NOT NULL, `filePath` TEXT NOT NULL, PRIMARY KEY(`cid`))",
+        "fields": [
+          {
+            "fieldPath": "cid",
+            "columnName": "cid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mimeType",
+            "columnName": "mimeType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "size",
+            "columnName": "size",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "filePath",
+            "columnName": "filePath",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "cid"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_blobs_cid",
+            "unique": true,
+            "columnNames": [
+              "cid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_blobs_cid` ON `${TABLE_NAME}` (`cid`)"
+          }
+        ]
+      },
+      {
+        "tableName": "peer_profiles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`did` TEXT NOT NULL, `displayName` TEXT NOT NULL, `bio` TEXT, `age` INTEGER, `city` TEXT, `latitude` REAL, `longitude` REAL, `geohash` TEXT, `interests` TEXT, `profileCid` TEXT NOT NULL, `commitCid` TEXT NOT NULL, `commitSignature` BLOB NOT NULL, `signingKey` BLOB NOT NULL, `verifiedCborBytes` BLOB NOT NULL DEFAULT X'', `receivedAt` INTEGER NOT NULL, `lastUpdatedAt` INTEGER NOT NULL, `lastSeenAt` INTEGER NOT NULL, `isBlocked` INTEGER NOT NULL, `ownerDid` TEXT NOT NULL DEFAULT '', `bodyCiphertext` BLOB NOT NULL DEFAULT X'', `bodyNonce` BLOB NOT NULL DEFAULT X'', `cachedAt` INTEGER, `lastServedAt` INTEGER, `expiresAt` INTEGER, `sessionInteractionToken` TEXT, PRIMARY KEY(`did`))",
+        "fields": [
+          {
+            "fieldPath": "did",
+            "columnName": "did",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bio",
+            "columnName": "bio",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "age",
+            "columnName": "age",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "city",
+            "columnName": "city",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "geohash",
+            "columnName": "geohash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "interests",
+            "columnName": "interests",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "profileCid",
+            "columnName": "profileCid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "commitCid",
+            "columnName": "commitCid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "commitSignature",
+            "columnName": "commitSignature",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "signingKey",
+            "columnName": "signingKey",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "verifiedCborBytes",
+            "columnName": "verifiedCborBytes",
+            "affinity": "BLOB",
+            "notNull": true,
+            "defaultValue": "X''"
+          },
+          {
+            "fieldPath": "receivedAt",
+            "columnName": "receivedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastUpdatedAt",
+            "columnName": "lastUpdatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSeenAt",
+            "columnName": "lastSeenAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isBlocked",
+            "columnName": "isBlocked",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownerDid",
+            "columnName": "ownerDid",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "bodyCiphertext",
+            "columnName": "bodyCiphertext",
+            "affinity": "BLOB",
+            "notNull": true,
+            "defaultValue": "X''"
+          },
+          {
+            "fieldPath": "bodyNonce",
+            "columnName": "bodyNonce",
+            "affinity": "BLOB",
+            "notNull": true,
+            "defaultValue": "X''"
+          },
+          {
+            "fieldPath": "cachedAt",
+            "columnName": "cachedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastServedAt",
+            "columnName": "lastServedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "expiresAt",
+            "columnName": "expiresAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sessionInteractionToken",
+            "columnName": "sessionInteractionToken",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "did"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_peer_profiles_age",
+            "unique": false,
+            "columnNames": [
+              "age"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_peer_profiles_age` ON `${TABLE_NAME}` (`age`)"
+          },
+          {
+            "name": "index_peer_profiles_city",
+            "unique": false,
+            "columnNames": [
+              "city"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_peer_profiles_city` ON `${TABLE_NAME}` (`city`)"
+          },
+          {
+            "name": "index_peer_profiles_lastSeenAt",
+            "unique": false,
+            "columnNames": [
+              "lastSeenAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_peer_profiles_lastSeenAt` ON `${TABLE_NAME}` (`lastSeenAt`)"
+          },
+          {
+            "name": "index_peer_profiles_isBlocked",
+            "unique": false,
+            "columnNames": [
+              "isBlocked"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_peer_profiles_isBlocked` ON `${TABLE_NAME}` (`isBlocked`)"
+          },
+          {
+            "name": "index_peer_profiles_expiresAt",
+            "unique": false,
+            "columnNames": [
+              "expiresAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_peer_profiles_expiresAt` ON `${TABLE_NAME}` (`expiresAt`)"
+          },
+          {
+            "name": "index_peer_profiles_lastServedAt",
+            "unique": false,
+            "columnNames": [
+              "lastServedAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_peer_profiles_lastServedAt` ON `${TABLE_NAME}` (`lastServedAt`)"
+          }
+        ]
+      },
+      {
+        "tableName": "incoming_likes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `fromDid` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `receivedAt` INTEGER NOT NULL, `verifiedCborBytes` BLOB NOT NULL, `commitSignature` BLOB NOT NULL, `isMatched` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fromDid",
+            "columnName": "fromDid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "receivedAt",
+            "columnName": "receivedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "verifiedCborBytes",
+            "columnName": "verifiedCborBytes",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "commitSignature",
+            "columnName": "commitSignature",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isMatched",
+            "columnName": "isMatched",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_incoming_likes_fromDid",
+            "unique": false,
+            "columnNames": [
+              "fromDid"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_incoming_likes_fromDid` ON `${TABLE_NAME}` (`fromDid`)"
+          },
+          {
+            "name": "index_incoming_likes_isMatched",
+            "unique": false,
+            "columnNames": [
+              "isMatched"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_incoming_likes_isMatched` ON `${TABLE_NAME}` (`isMatched`)"
+          }
+        ]
+      },
+      {
+        "tableName": "conversations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`peerDid` TEXT NOT NULL, `peerDisplayName` TEXT NOT NULL, `lastMessagePreview` TEXT, `lastMessageAt` INTEGER, `unreadCount` INTEGER NOT NULL, `matchedAt` INTEGER NOT NULL, `isArchived` INTEGER NOT NULL, PRIMARY KEY(`peerDid`))",
+        "fields": [
+          {
+            "fieldPath": "peerDid",
+            "columnName": "peerDid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "peerDisplayName",
+            "columnName": "peerDisplayName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastMessagePreview",
+            "columnName": "lastMessagePreview",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastMessageAt",
+            "columnName": "lastMessageAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "unreadCount",
+            "columnName": "unreadCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "matchedAt",
+            "columnName": "matchedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isArchived",
+            "columnName": "isArchived",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "peerDid"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_conversations_lastMessageAt",
+            "unique": false,
+            "columnNames": [
+              "lastMessageAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_conversations_lastMessageAt` ON `${TABLE_NAME}` (`lastMessageAt`)"
+          }
+        ]
+      },
+      {
+        "tableName": "auth_settings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `pinHash` TEXT, `pinSalt` TEXT, `hasIdentity` INTEGER NOT NULL, `didKey` TEXT, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pinHash",
+            "columnName": "pinHash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pinSalt",
+            "columnName": "pinSalt",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "hasIdentity",
+            "columnName": "hasIdentity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "didKey",
+            "columnName": "didKey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8e92575efcf2fd3ff92586d64fa1f81e')"
+    ]
+  }
+}
